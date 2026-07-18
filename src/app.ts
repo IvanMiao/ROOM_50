@@ -17,10 +17,51 @@ const CASE_CONTRACT = Object.freeze({
 });
 
 type Engine = "threejs" | "blender";
+type SamplePlanId = "end-entry" | "central-entry" | "fixed-core";
+
+interface SamplePlan {
+  id: SamplePlanId;
+  title: string;
+  name: string;
+  sourceUrl: string;
+  designChallenge: string;
+}
+
+const SAMPLE_PLANS: Record<SamplePlanId, SamplePlan> = {
+  "end-entry": {
+    id: "end-entry",
+    title: "End-entry plan",
+    name: "room50-end-entry-plan.svg",
+    sourceUrl: "/assets/sample-plan.svg",
+    designChallenge:
+      "A short-side entrance with the accessible WC and service zone arranged at opposite ends of the rear wall.",
+  },
+  "central-entry": {
+    id: "central-entry",
+    title: "Central shopfront plan",
+    name: "room50-central-entry-plan.svg",
+    sourceUrl: "/assets/plans/central-entry.svg",
+    designChallenge:
+      "A centred long-side entrance with service to the left and an existing accessible WC at the rear right.",
+  },
+  "fixed-core": {
+    id: "fixed-core",
+    title: "Fixed-core plan",
+    name: "room50-fixed-core-plan.svg",
+    sourceUrl: "/assets/plans/fixed-core.svg",
+    designChallenge:
+      "A long-side entrance near the right corner with a fixed rear core and structural column that the layout must respect.",
+  },
+};
+
+const DEFAULT_SAMPLE_PLAN_ID: SamplePlanId = "end-entry";
 
 interface ReferenceImage {
   kind: "sample" | "upload";
+  sampleId: SamplePlanId | null;
   name: string;
+  sourceUrl: string | null;
+  designChallenge: string | null;
   type: string;
   size: number | null;
   width: number | null;
@@ -40,6 +81,21 @@ interface ImageDimensions {
   height: number | null;
 }
 
+function sampleReference(planId: SamplePlanId): ReferenceImage {
+  const plan = SAMPLE_PLANS[planId];
+  return {
+    kind: "sample",
+    sampleId: plan.id,
+    name: plan.name,
+    sourceUrl: plan.sourceUrl,
+    designChallenge: plan.designChallenge,
+    type: "image/svg+xml",
+    size: null,
+    width: 1000,
+    height: 500,
+  };
+}
+
 function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
   if (!element) throw new Error(`Required element not found: ${selector}`);
@@ -56,14 +112,7 @@ const state: AppState = {
     "communityConnection",
     "loweredOrdering",
   ]),
-  reference: {
-    kind: "sample",
-    name: "room50-sample-plan.svg",
-    type: "image/svg+xml",
-    size: null,
-    width: 1000,
-    height: 500,
-  },
+  reference: sampleReference(DEFAULT_SAMPLE_PLAN_ID),
   objectUrl: null,
 };
 
@@ -76,7 +125,6 @@ const elements = {
   uploadName: requiredElement<HTMLElement>("#uploadName"),
   uploadMeta: requiredElement<HTMLElement>("#uploadMeta"),
   removeUpload: requiredElement<HTMLButtonElement>("#removeUpload"),
-  useSample: requiredElement<HTMLButtonElement>("#useSample"),
   intentInput: requiredElement<HTMLTextAreaElement>("#intentInput"),
   promptOutput: requiredElement<HTMLElement>("#promptOutput"),
   promptCount: requiredElement<HTMLElement>("#promptCount"),
@@ -88,10 +136,14 @@ const elements = {
 
 function pageUrl(): string {
   if (window.location.protocol === "file:") {
-    return "[DEPLOYED_ROOM50_URL]";
+    return "[DEPLOYED_ROOM50_URL]/";
   }
 
   return new URL("/", window.location.href).href;
+}
+
+function publicResourceUrl(path: string): string {
+  return `${pageUrl()}${path.replace(/^\/+/, "")}`;
 }
 
 function referenceDescription(): string {
@@ -106,8 +158,11 @@ function referenceDescription(): string {
   }
 
   return [
-    "User reference: built-in schematic at /assets/sample-plan.svg (1000 × 500px).",
-    "Treat the schematic as a zoning hint, not a construction drawing. Its dimensions are governed by the scene contract.",
+    `Selected built-in reference: ${reference.sampleId} — “${reference.name}” (${dimensions}).`,
+    `Reference URL: ${publicResourceUrl(reference.sourceUrl ?? "/assets/sample-plan.svg")}`,
+    `Reference catalog: ${publicResourceUrl("/assets/plans/catalog.json")}`,
+    `Curated design challenge: ${reference.designChallenge ?? "Inspect the selected plan."}`,
+    "Inspect the selected SVG itself. Treat the catalog challenge as context, not as an observed fact, and let the scene contract govern dimensions.",
   ].join("\n");
 }
 
@@ -151,6 +206,12 @@ DISCOVER FIRST
 REFERENCE
 ${referenceDescription()}
 
+PLAN FIDELITY EVIDENCE
+- Preserve the entrance, walls, openings, fixed zones, and obstructions that are visibly observed in the selected reference.
+- Before building, report each observed plan feature, its image location, confidence, modeling consequence, and any conflict with the fixed contract.
+- Make the model Top view visibly correspond to this specific reference instead of reusing another ROOM/50 layout.
+- Report every intentional deviation and every ambiguous feature. Never present an assumption as something observed in the plan.
+
 USER INTENT
 ${state.intent.trim() || "Create a calm, welcoming accessible neighbourhood café."}
 Experience tags: ${selectedTags}
@@ -182,7 +243,7 @@ ${engineInstructions()}
 REQUIRED PROCESS
 1. Extract: list what the reference actually shows, with confidence levels.
 2. Plan: state coordinate system, scale, zoning, object list, and assumptions before building.
-3. Build: create the smallest model that demonstrates the requested spatial idea, and write scene-brief.json so it conforms to /agent/scene-brief.schema.json.
+3. Build: create the smallest model that demonstrates the requested spatial idea, record this selection in scene-brief.reference, and write scene-brief.json so it conforms to /agent/scene-brief.schema.json.
 4. Validate: run \`npm run validate -- path/to/scene-brief.json\` and read the generated validation-report.json.
 5. Repair: for every failed check, use its measured, required, and violationGeometry data to update both the model and scene-brief.json. Never edit or hand-author validation-report.json to manufacture a pass.
 6. Repeat: run build → validate → read report → repair until every validation check reports pass. If the validator command is unavailable, stop and report that blocker instead of claiming completion.
@@ -192,6 +253,7 @@ REQUIRED PROCESS
 DEFINITION OF DONE
 - The model is true-scale and the 50 m² boundary is obvious.
 - All objects/groups have semantic names.
+- The selected plan id or uploaded reference name is recorded, and the model Top view visibly corresponds to its observed entrance, walls, openings, and fixed zones.
 - Accessibility overlays can be shown independently from presentation materials.
 - Top view visibly demonstrates the continuous route and turning zones.
 - Any conflict between the uploaded drawing and this fixed contract is reported, not silently resolved.
@@ -260,20 +322,31 @@ function showReferencePreview(src: string, reference: ReferenceImage): void {
   elements.uploadPreview.hidden = false;
 }
 
-function useSampleReference({ notify = true }: { notify?: boolean } = {}): void {
+function updateSampleSelection(planId: SamplePlanId | null): void {
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-sample-plan]")
+    .forEach((button) => {
+      const selected = button.dataset.samplePlan === planId;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+}
+
+let lastSamplePlanId: SamplePlanId = DEFAULT_SAMPLE_PLAN_ID;
+
+function useSampleReference(
+  planId: SamplePlanId = DEFAULT_SAMPLE_PLAN_ID,
+  { notify = true }: { notify?: boolean } = {},
+): void {
   revokeObjectUrl();
-  state.reference = {
-    kind: "sample",
-    name: "room50-sample-plan.svg",
-    type: "image/svg+xml",
-    size: null,
-    width: 1000,
-    height: 500,
-  };
+  const plan = SAMPLE_PLANS[planId];
+  lastSamplePlanId = planId;
+  state.reference = sampleReference(planId);
   elements.planUpload.value = "";
-  showReferencePreview("/assets/sample-plan.svg", state.reference);
+  updateSampleSelection(planId);
+  showReferencePreview(plan.sourceUrl, state.reference);
   renderPrompt();
-  if (notify) showToast(i18n.t("toastSample"));
+  if (notify) showToast(`${plan.title} · ${i18n.t("toastSample")}`);
 }
 
 function validateFile(file: File): void {
@@ -309,11 +382,15 @@ async function handleFile(file: File | undefined): Promise<void> {
   const dimensions = await inspectImage(file, state.objectUrl);
   state.reference = {
     kind: "upload",
+    sampleId: null,
     name: file.name,
+    sourceUrl: null,
+    designChallenge: null,
     type: file.type,
     size: file.size,
     ...dimensions,
   };
+  updateSampleSelection(null);
   showReferencePreview(state.objectUrl, state.reference);
   renderPrompt();
   showToast(i18n.t("toastUpload"));
@@ -388,12 +465,17 @@ elements.uploadZone.addEventListener("drop", (event) =>
 
 elements.removeUpload.addEventListener("click", (event) => {
   event.stopPropagation();
-  useSampleReference({ notify: true });
+  useSampleReference(lastSamplePlanId, { notify: true });
 });
 
-elements.useSample.addEventListener("click", () =>
-  useSampleReference({ notify: true }),
-);
+document
+  .querySelectorAll<HTMLButtonElement>("[data-sample-plan]")
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      const planId = button.dataset.samplePlan as SamplePlanId;
+      useSampleReference(planId, { notify: true });
+    });
+  });
 
 elements.intentInput.addEventListener("input", () => {
   state.intent = elements.intentInput.value;
@@ -433,7 +515,7 @@ elements.copyPrompt.addEventListener("click", () =>
 );
 elements.downloadBrief.addEventListener("click", downloadBrief);
 elements.copyPageUrl.addEventListener("click", () => {
-  const kickoff = `Explore ${pageUrl()} as an agent-friendly spatial brief. Start with /llms.txt and /agent/scene-contract.json, inspect the page and its sample plan, then tell me what you can build for this 50 m2 accessible cafe. Do not modify files yet.`;
+  const kickoff = `Explore ${pageUrl()} as an agent-friendly spatial brief. Start with /llms.txt and /agent/scene-contract.json, inspect the currently selected reference plan, then tell me how its observed entrance, walls, openings, and fixed zones should shape this 50 m2 accessible cafe. Do not modify files yet.`;
   copyText(kickoff, i18n.t("toastCopyPage"));
 });
 
@@ -445,7 +527,7 @@ window.addEventListener("room50:localechange", ({ detail }) => {
   }
   elements.uploadZone.setAttribute("aria-label", i18n.t("uploadAria"));
   showReferencePreview(
-    state.objectUrl || "/assets/sample-plan.svg",
+    state.objectUrl || state.reference.sourceUrl || "/assets/sample-plan.svg",
     state.reference,
   );
   renderPrompt();
@@ -453,4 +535,4 @@ window.addEventListener("room50:localechange", ({ detail }) => {
 
 window.addEventListener("beforeunload", revokeObjectUrl);
 
-useSampleReference({ notify: false });
+useSampleReference(DEFAULT_SAMPLE_PLAN_ID, { notify: false });

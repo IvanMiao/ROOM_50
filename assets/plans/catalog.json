@@ -1,0 +1,36 @@
+{
+  "catalogVersion": "1.0.0",
+  "scenarioId": "room50-accessible-cafe-v1",
+  "shell": {
+    "lengthM": 10,
+    "widthM": 5,
+    "grossAreaM2": 50
+  },
+  "plans": [
+    {
+      "id": "end-entry",
+      "title": "End-entry plan",
+      "imageUrl": "/assets/sample-plan.svg",
+      "widthPx": 1000,
+      "heightPx": 500,
+      "designChallenge": "A short-side entrance with the accessible WC and service zone arranged at opposite ends of the rear wall."
+    },
+    {
+      "id": "central-entry",
+      "title": "Central shopfront plan",
+      "imageUrl": "/assets/plans/central-entry.svg",
+      "widthPx": 1000,
+      "heightPx": 500,
+      "designChallenge": "A centred long-side entrance with service to the left and an existing accessible WC at the rear right."
+    },
+    {
+      "id": "fixed-core",
+      "title": "Fixed-core plan",
+      "imageUrl": "/assets/plans/fixed-core.svg",
+      "widthPx": 1000,
+      "heightPx": 500,
+      "designChallenge": "A long-side entrance near the right corner with a fixed rear core and structural column that the layout must respect."
+    }
+  ],
+  "agentInstruction": "Inspect the selected SVG itself. Treat designChallenge as context, not as a substitute for observed evidence. Report any conflict with /agent/scene-contract.json."
+}

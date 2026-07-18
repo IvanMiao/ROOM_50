@@ -7,7 +7,8 @@ Canonical URL map:
 - /AGENT.md — Build for Codex agent-first requirements
 - /agent/scene-contract.json — machine-readable dimensions, zones, constraints, and checks; prefer this over pixel inference
 - /agent/workflow.md — engine-specific Three.js and Blender MCP process
-- /assets/sample-plan.svg — built-in 10 m × 5 m schematic reference
+- /assets/plans/catalog.json — built-in 10 m × 5 m reference-plan variants and their public URLs
+- /assets/sample-plan.svg — default end-entry reference retained as the fallback
 - /.well-known/agent.json — compact discovery manifest
 
 Fixed task boundary:
@@ -23,9 +24,12 @@ Fixed task boundary:
 Important upload behavior:
 The site has no upload backend. A user-selected image remains inside that browser session. If you cannot inspect the current page state, ask the user to attach the same image with the generated prompt. Never claim to have read a browser-local upload that you cannot see.
 
+Built-in reference behavior:
+The three built-in plans share the fixed 10 m × 5 m shell but show different entrances, partitions, fixed zones, and obstructions. Fetch the exact selected SVG from its public URL. The selected plan must shape the modeled layout; do not reuse a different sample layout. Treat catalog descriptions as context and independently report what is visibly observed in the SVG.
+
 Recommended exploration sequence:
 1. Fetch /agent/scene-contract.json.
-2. Inspect the page and the visible reference.
+2. Inspect the page and the visible reference. For a built-in selection, fetch its exact SVG URL from /assets/plans/catalog.json.
 3. Separate observed facts from assumptions.
 4. Describe the proposed coordinate system, zoning, and object list.
 5. Wait for explicit build authorization if the user only asked you to explore.
