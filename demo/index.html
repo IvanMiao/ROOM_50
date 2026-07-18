@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="ROOM/50 geometry validation evidence demo." />
+    <title>ROOM/50 — Geometry decides</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="返回 ROOM/50 首页"><b>R/50</b><span>validation harness</span></a>
+        <div class="run-state"><span></span><b id="runState">REPORT LOADED</b><small>validator evidence · not agent claims</small></div>
+        <p>concept demo — not for construction</p>
+      </header>
+
+      <section class="workspace" aria-label="空间验证演示">
+        <aside class="story-panel">
+          <p class="kicker">DEMO LOOP / 05</p>
+          <h1>Geometry<br /><em>decides.</em></h1>
+          <p class="lede">合同交给 Codex，Validator 检查净空。红色不是意见；它是空间里可定位、可修复的失败。</p>
+
+          <div class="scenario-switch" role="group" aria-label="选择演示状态">
+            <button class="is-active is-fail" type="button" data-scenario="fail">
+              <span>01</span><b>Before</b><small>route 1.05 m</small>
+            </button>
+            <button type="button" data-scenario="pass">
+              <span>02</span><b>After</b><small>route 1.24 m</small>
+            </button>
+          </div>
+
+          <blockquote id="decisionText">B3 桌旁座椅侵入动线，最窄处只剩 1.05 m。</blockquote>
+
+          <div class="priority-card">
+            <span>DECISION RULE</span>
+            <p>clearance <i>before</i> seat count</p>
+            <small id="seatDelta">15 seats · one fix required</small>
+          </div>
+        </aside>
+
+        <section class="viewport-panel">
+          <div class="viewport-head">
+            <div>
+              <span class="status-pill is-fail" id="statusPill">FAIL</span>
+              <b id="sceneLabel">Before — B3 blocks the route</b>
+            </div>
+            <div class="view-tabs" role="group" aria-label="视图">
+              <button data-view="perspective" type="button">Perspective</button>
+              <button data-view="top" type="button">Top</button>
+              <button class="is-active" data-view="accessibility" type="button">Evidence</button>
+            </div>
+          </div>
+          <div id="sceneMount" class="scene-mount" aria-label="交互式 3D 场景">
+            <div class="loading">Building true-scale scene…</div>
+          </div>
+          <div class="viewport-foot">
+            <span>10 × 5 m shell</span><span>1 unit = 1 metre</span><span>drag to orbit</span>
+          </div>
+        </section>
+
+        <aside class="report-panel">
+          <div class="report-head">
+            <p>validation-report.json</p>
+            <span id="reportSummary">4 pass / 1 fail</span>
+          </div>
+          <div class="check-list" id="checkList" aria-live="polite"></div>
+          <div class="display-controls">
+            <label>Palette
+              <select id="paletteSelect"><option value="hearth">Hearth / warm clay</option><option value="linen">Linen / quiet blue</option></select>
+            </label>
+            <button id="lightToggle" type="button" aria-pressed="false"><span>☼</span> Day light</button>
+          </div>
+          <p class="source-note"><span></span> Overlay geometry comes from the validator report.</p>
+        </aside>
+      </section>
+    </main>
+    <noscript>This evidence viewer requires JavaScript. The JSON fixtures remain readable under /demo/fixtures/.</noscript>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

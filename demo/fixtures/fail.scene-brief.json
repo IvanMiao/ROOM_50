@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0-demo",
+  "label": "Before — B3 blocks the route",
+  "shell": { "lengthM": 10, "widthM": 5, "clearHeightM": 3.2 },
+  "seatCount": 15,
+  "objects": [
+    { "id": "wc-partition-front", "semanticTag": "partition", "position": [-3.8, -0.35], "rotation": 0, "bbox": { "w": 2.3, "d": 0.1, "h": 2.6 } },
+    { "id": "wc-partition-side", "semanticTag": "partition", "position": [-2.7, -1.4], "rotation": 0, "bbox": { "w": 0.1, "d": 2.2, "h": 2.6 } },
+    { "id": "wc-fixture", "semanticTag": "toilet", "position": [-4.25, -1.75], "rotation": 0, "bbox": { "w": 0.65, "d": 0.75, "h": 0.48 } },
+    { "id": "back-bar", "semanticTag": "back-bar", "position": [2.9, -2.12], "rotation": 0, "bbox": { "w": 3.8, "d": 0.58, "h": 0.92 } },
+    { "id": "service-counter", "semanticTag": "service-counter", "position": [3.25, -0.9], "rotation": 0, "bbox": { "w": 3.1, "d": 0.72, "h": 0.92 } },
+    { "id": "lowered-counter", "semanticTag": "lowered-counter", "position": [1.25, -0.9], "rotation": 0, "bbox": { "w": 0.9, "d": 0.72, "h": 0.76 } },
+    { "id": "accessible-table", "semanticTag": "accessible-table", "position": [-0.55, 1.35], "rotation": 0, "bbox": { "w": 0.9, "d": 0.9, "h": 0.74 } },
+    { "id": "accessible-companion", "semanticTag": "chair", "position": [0.18, 1.35], "rotation": 3.14, "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 } },
+    { "id": "table-b2", "semanticTag": "round-table", "position": [2.45, 1.5], "rotation": 0, "bbox": { "w": 0.85, "d": 0.85, "h": 0.74 } },
+    { "id": "b2-seat-a", "semanticTag": "chair", "position": [1.78, 1.5], "rotation": 1.57, "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 } },
+    { "id": "b2-seat-b", "semanticTag": "chair", "position": [3.12, 1.5], "rotation": -1.57, "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 } },
+    { "id": "table-b3", "semanticTag": "round-table", "position": [0.18, 0.02], "rotation": 0, "bbox": { "w": 0.92, "d": 0.92, "h": 0.74 } },
+    { "id": "b3-seat-route", "semanticTag": "chair", "position": [-0.5, 0.02], "rotation": 1.57, "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 } },
+    { "id": "b3-seat-wall", "semanticTag": "chair", "position": [0.86, 0.02], "rotation": -1.57, "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 } },
+    { "id": "window-bench", "semanticTag": "bench-seat", "position": [3.9, 2.1], "rotation": 0, "bbox": { "w": 1.8, "d": 0.55, "h": 0.5 } },
+    { "id": "bench-table", "semanticTag": "table", "position": [3.9, 1.3], "rotation": 0, "bbox": { "w": 0.9, "d": 0.65, "h": 0.74 } },
+    { "id": "bench-chair-a", "semanticTag": "chair", "position": [3.35, 0.75], "rotation": 0, "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 } },
+    { "id": "bench-chair-b", "semanticTag": "chair", "position": [4.45, 0.75], "rotation": 0, "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 } },
+    { "id": "entry-plant", "semanticTag": "plant", "position": [-4.45, 2.05], "rotation": 0, "bbox": { "w": 0.6, "d": 0.6, "h": 1.15 } }
+  ]
+}
