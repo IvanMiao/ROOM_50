@@ -1,0 +1,618 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ROOM/50 scene brief",
+  "description": "Canonical geometry handoff written by a ROOM/50 builder and read by the validator and renderer. All dimensions are in metres.",
+  "$comment": "Runtime consumers must also enforce unique ids, valid object/seat references, strictly increasing in-range route stop indexes, and consistency between referenced objects and declared clearance geometry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "label",
+    "status",
+    "units",
+    "coordinateSystem",
+    "observations",
+    "userIntent",
+    "assumptions",
+    "shell",
+    "objects",
+    "seats",
+    "accessibility"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0",
+      "description": "Version of this scene-brief interface, independent of the scenario contract version."
+    },
+    "contractId": {
+      "const": "room50-accessible-cafe-v1",
+      "description": "Canonical scenario contract implemented by this brief."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "concept-demo-not-for-construction"
+    },
+    "units": {
+      "const": "metres"
+    },
+    "coordinateSystem": {
+      "$ref": "#/$defs/coordinateSystem"
+    },
+    "observations": {
+      "type": "array",
+      "description": "Facts visibly observed in the supplied reference. Keep this separate from intent and assumptions.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "userIntent": {
+      "type": "array",
+      "description": "User-requested qualities or priorities that are not fixed geometry constraints.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Unverified modeling assumptions, including local-code, site, structure, fire, plumbing, and MEP gaps where relevant.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "decision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional concise record of the latest spatial trade-off."
+    },
+    "shell": {
+      "$ref": "#/$defs/shell"
+    },
+    "objects": {
+      "type": "array",
+      "description": "Modeled solid objects. position is the centre of the object's oriented footprint; bbox height rises from elevationM.",
+      "items": {
+        "$ref": "#/$defs/sceneObject"
+      }
+    },
+    "seats": {
+      "type": "array",
+      "description": "Capacity markers. Validators derive seat count from entries where countsTowardCapacity is true; do not trust a separate self-reported count.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/seat"
+      },
+      "contains": {
+        "type": "object",
+        "required": ["kind", "accessible"],
+        "properties": {
+          "kind": {
+            "const": "wheelchair-position"
+          },
+          "accessible": {
+            "const": true
+          }
+        }
+      },
+      "minContains": 1
+    },
+    "accessibility": {
+      "$ref": "#/$defs/accessibility"
+    }
+  },
+  "$defs": {
+    "positiveDimension": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "point2": {
+      "type": "array",
+      "description": "[x, z] in metres.",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "bbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "d", "h"],
+      "properties": {
+        "w": {
+          "$ref": "#/$defs/positiveDimension",
+          "description": "Local width along x when rotation is zero."
+        },
+        "d": {
+          "$ref": "#/$defs/positiveDimension",
+          "description": "Local depth along z when rotation is zero."
+        },
+        "h": {
+          "$ref": "#/$defs/positiveDimension",
+          "description": "Vertical height along +y."
+        }
+      }
+    },
+    "coordinateSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizontalPlane",
+        "verticalAxis",
+        "origin",
+        "rotationUnit",
+        "rotationAxis",
+        "rotationRule"
+      ],
+      "properties": {
+        "horizontalPlane": {
+          "const": "xz"
+        },
+        "verticalAxis": {
+          "const": "y-up"
+        },
+        "origin": {
+          "const": "shell-centre-at-finished-floor"
+        },
+        "rotationUnit": {
+          "const": "radians"
+        },
+        "rotationAxis": {
+          "const": "y"
+        },
+        "rotationRule": {
+          "const": "right-hand-rule"
+        }
+      }
+    },
+    "shell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shape", "lengthM", "widthM", "clearHeightM", "grossAreaM2"],
+      "properties": {
+        "shape": {
+          "const": "rectangle"
+        },
+        "lengthM": {
+          "const": 10
+        },
+        "widthM": {
+          "const": 5
+        },
+        "clearHeightM": {
+          "const": 3.2
+        },
+        "grossAreaM2": {
+          "const": 50
+        }
+      }
+    },
+    "collisionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obstacle"],
+      "properties": {
+        "obstacle": {
+          "type": "boolean",
+          "description": "Whether this object blocks route and clearance geometry."
+        },
+        "allowOverlapWith": {
+          "type": "array",
+          "description": "Explicit object ids exempted from object-object intersection checks.",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "sceneObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "semanticTag",
+        "semanticGroup",
+        "position",
+        "rotation",
+        "bbox"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "semanticTag": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+        },
+        "semanticGroup": {
+          "enum": [
+            "shell",
+            "architecture",
+            "service",
+            "furniture",
+            "accessibility",
+            "lighting"
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/point2"
+        },
+        "elevationM": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "rotation": {
+          "type": "number",
+          "description": "Radians about +y using the right-hand rule. Zero aligns bbox.w to x and bbox.d to z."
+        },
+        "bbox": {
+          "$ref": "#/$defs/bbox"
+        },
+        "collision": {
+          "$ref": "#/$defs/collisionPolicy"
+        }
+      }
+    },
+    "seat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "position", "countsTowardCapacity", "accessible"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": ["chair", "stool", "bench-position", "wheelchair-position"]
+        },
+        "position": {
+          "$ref": "#/$defs/point2"
+        },
+        "objectId": {
+          "$ref": "#/$defs/id",
+          "description": "Optional solid object represented by this marker. Omit for an empty wheelchair position."
+        },
+        "countsTowardCapacity": {
+          "type": "boolean"
+        },
+        "accessible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "routeStop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "pointIndex"],
+      "properties": {
+        "stage": {
+          "enum": ["entrance", "ordering", "pick-up", "accessible-seat", "accessible-wc"]
+        },
+        "pointIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index into route.centerline. Stop indexes must be strictly increasing and in range."
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumClearWidthM", "centerline", "stops"],
+      "properties": {
+        "minimumClearWidthM": {
+          "const": 1.2
+        },
+        "centerline": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "$ref": "#/$defs/point2"
+          }
+        },
+        "stops": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/routeStop"
+                },
+                {
+                  "properties": {
+                    "stage": {
+                      "const": "entrance"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/routeStop"
+                },
+                {
+                  "properties": {
+                    "stage": {
+                      "const": "ordering"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/routeStop"
+                },
+                {
+                  "properties": {
+                    "stage": {
+                      "const": "pick-up"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/routeStop"
+                },
+                {
+                  "properties": {
+                    "stage": {
+                      "const": "accessible-seat"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/routeStop"
+                },
+                {
+                  "properties": {
+                    "stage": {
+                      "const": "accessible-wc"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": false,
+          "minItems": 5,
+          "maxItems": 5
+        }
+      }
+    },
+    "turningZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "at", "center", "diameterM"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "at": {
+          "enum": ["entrance", "service-counter", "accessible-wc"]
+        },
+        "center": {
+          "$ref": "#/$defs/point2"
+        },
+        "diameterM": {
+          "const": 1.5
+        }
+      }
+    },
+    "door": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "at", "position", "rotation", "clearWidthM", "stepFree"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "at": {
+          "enum": ["entrance", "accessible-wc"]
+        },
+        "position": {
+          "$ref": "#/$defs/point2"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "clearWidthM": {
+          "type": "number",
+          "minimum": 0.9
+        },
+        "stepFree": {
+          "type": "boolean"
+        },
+        "objectId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "clearanceVolume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "rotation", "bbox"],
+      "properties": {
+        "position": {
+          "$ref": "#/$defs/point2"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "bbox": {
+          "$ref": "#/$defs/bbox"
+        }
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route", "turningZones", "doors", "serviceCounter", "accessibleTable"],
+      "properties": {
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "turningZones": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/turningZone"
+                },
+                {
+                  "properties": {
+                    "at": {
+                      "const": "entrance"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/turningZone"
+                },
+                {
+                  "properties": {
+                    "at": {
+                      "const": "service-counter"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/turningZone"
+                },
+                {
+                  "properties": {
+                    "at": {
+                      "const": "accessible-wc"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "doors": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/door"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": ["at", "stepFree"],
+                "properties": {
+                  "at": {
+                    "const": "entrance"
+                  },
+                  "stepFree": {
+                    "const": true
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": ["at"],
+                "properties": {
+                  "at": {
+                    "const": "accessible-wc"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            }
+          ]
+        },
+        "serviceCounter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["counterObjectId", "loweredSegmentObjectId", "maximumLoweredHeightM"],
+          "properties": {
+            "counterObjectId": {
+              "$ref": "#/$defs/id"
+            },
+            "loweredSegmentObjectId": {
+              "$ref": "#/$defs/id",
+              "description": "Validator resolves this object's bbox.h as the modeled counter height."
+            },
+            "maximumLoweredHeightM": {
+              "const": 0.76
+            }
+          }
+        },
+        "accessibleTable": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tableObjectId",
+            "wheelchairSeatId",
+            "minimumKneeClearHeightM",
+            "kneeClearanceVolume"
+          ],
+          "properties": {
+            "tableObjectId": {
+              "$ref": "#/$defs/id"
+            },
+            "wheelchairSeatId": {
+              "$ref": "#/$defs/id"
+            },
+            "minimumKneeClearHeightM": {
+              "const": 0.7
+            },
+            "kneeClearanceVolume": {
+              "$ref": "#/$defs/clearanceVolume",
+              "description": "Validator checks bbox.h and collision-free volume under the table."
+            }
+          }
+        }
+      }
+    }
+  }
+}
