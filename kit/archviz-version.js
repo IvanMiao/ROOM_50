@@ -1,4 +1,4 @@
-export const ARCHVIZ_ASSET_VERSION = "phase1-2026-07-18";
+export const ARCHVIZ_ASSET_VERSION = "canonical-v1-2026-07-18";
 
 export function versionedArchvizUrl(path) {
   const separator = path.includes("?") ? "&" : "?";

@@ -9,25 +9,27 @@ The UI generates prompts for either:
 
 ## Run locally
 
-Serve the repository root with any static file server. No build step is required.
+Use the exact Node 22.14.0 release pinned in `.nvmrc` and pnpm:
 
-```powershell
-python -m http.server 4173
+```bash
+pnpm install
+pnpm dev
 ```
 
-Then open `http://127.0.0.1:4173`.
+Open the local URL printed by Vite. Run `pnpm typecheck` for strict TypeScript checks and `pnpm build` to create the production `dist` directory.
 
-Open `http://127.0.0.1:4173/demo/` for the deterministic fail/pass evidence viewer. It progressively loads a Blender-authored ArchViz GLB when available and falls back to the semantic procedural renderer if that asset is absent or unsupported.
+Append `/demo/` to the local URL printed by Vite for the deterministic fail/pass evidence viewer. For a production check, run `pnpm build`, then `pnpm preview`, and append `/demo/` to the preview URL. The viewer progressively loads a Blender-authored ArchViz GLB when available and falls back to the semantic procedural renderer if that asset is absent or unsupported.
 
 ## Deploy to Netlify
 
-Connect this repository in Netlify. `netlify.toml` already configures the repository root as the publish directory with no build command. You can also drag the folder into Netlify Drop.
+Connect this repository in Netlify. `netlify.toml` runs the Vite build and publishes `dist`; `.nvmrc` pins a compatible Node version. For Netlify Drop, run `pnpm build` locally and upload the generated `dist` directory.
 
 ## Agent entry points
 
 - `/llms.txt` — short discovery map
 - `/AGENTS.md` — repository and execution guidance
 - `/agent/scene-contract.json` — canonical machine-readable constraints
+- `/agent/scene-brief.schema.json` — canonical scene-brief 1.0.0 interface
 - `/agent/workflow.md` — engine-specific build sequence
 - `/.well-known/agent.json` — small discovery manifest
 

@@ -37,6 +37,22 @@ BLENDER_COLLECTIONS = (
     "05_LIGHTING",
 )
 
+SEMANTIC_GROUP_COLLECTIONS = {
+    "shell": "00_SHELL",
+    "architecture": "01_ARCHITECTURE",
+    "service": "02_SERVICE",
+    "furniture": "03_FURNITURE",
+    "accessibility": "04_ACCESSIBILITY",
+    "lighting": "05_LIGHTING",
+}
+
+LEGACY_TAG_COLLECTIONS = {
+    "partition": "01_ARCHITECTURE",
+    "back-bar": "02_SERVICE",
+    "service-counter": "02_SERVICE",
+    "lowered-counter": "02_SERVICE",
+}
+
 SHELL_LENGTH_M = 10.0
 SHELL_WIDTH_M = 5.0
 SHELL_HEIGHT_M = 3.2
@@ -533,8 +549,8 @@ def glass_material(name: str) -> bpy.types.Material:
     return mat
 
 
-def build_materials(texture_dir: Path, variant: str) -> dict[str, bpy.types.Material]:
-    accent = "#4DFFB8" if variant == "pass" else "#FF624A"
+def build_materials(texture_dir: Path) -> dict[str, bpy.types.Material]:
+    target_accent = "#D7FF3F"
     return {
         "oak": textured_material("MAT_oak_generated", "oak", texture_dir, "#B6804D", 0.42),
         "plaster": textured_material("MAT_lime_plaster_generated", "plaster", texture_dir, "#E9DFD0", 0.78),
@@ -553,20 +569,38 @@ def build_materials(texture_dir: Path, variant: str) -> dict[str, bpy.types.Mate
         "dark_glass": translucent_material("MAT_smoked_glass", "#28403F", 0.58),
         "white_text": principled_material("MAT_warm_white_type", "#FFF9EE", roughness=0.42),
         "dark_text": principled_material("MAT_charcoal_type", "#171B1A", roughness=0.44),
-        "route": translucent_material(f"MAT_{variant}_route", accent, 0.26, 0.30),
-        "route_solid": translucent_material(f"MAT_{variant}_evidence", accent, 0.82, 0.85),
+        "route": translucent_material("MAT_accessibility_route_target", target_accent, 0.26, 0.30),
+        "route_solid": translucent_material("MAT_accessibility_target", target_accent, 0.82, 0.85),
         "shadow": principled_material("MAT_shadow_plinth", "#CBB9A1", roughness=0.92),
     }
 
 
 def tag_semantic_root(root: bpy.types.Object, item: dict) -> None:
     root["semanticTag"] = item["semanticTag"]
+    if "semanticGroup" in item:
+        root["semanticGroup"] = item["semanticGroup"]
     root["sourceId"] = item["id"]
     root["sourceFixture"] = "demo/fixtures"
+    root["elevationM"] = float(item.get("elevationM", 0.0))
     root["bboxWidthM"] = float(item["bbox"]["w"])
     root["bboxDepthM"] = float(item["bbox"]["d"])
     root["bboxHeightM"] = float(item["bbox"]["h"])
     root["conceptStatus"] = "not-for-construction"
+
+
+def fixture_collection_name(item: dict) -> str:
+    """Resolve the canonical destination, retaining tag inference for old briefs."""
+    semantic_group = item.get("semanticGroup")
+    if semantic_group in SEMANTIC_GROUP_COLLECTIONS:
+        return SEMANTIC_GROUP_COLLECTIONS[semantic_group]
+    return LEGACY_TAG_COLLECTIONS.get(item.get("semanticTag"), "03_FURNITURE")
+
+
+def move_semantic_hierarchy(root: bpy.types.Object, collection: bpy.types.Collection) -> None:
+    """Keep each modeled fixture and its detail geometry in its declared group."""
+    move_to_collection(root, collection)
+    for child in root.children_recursive:
+        move_to_collection(child, collection)
 
 
 def build_shell(collections, mats) -> None:
@@ -772,7 +806,7 @@ def build_table(item, root, collections, mats, round_table: bool, accessible: bo
         root["wheelchairPosition"] = True
         add_text(
             f"{item['id']}__knee-label",
-            "0.70 m KNEE CLEAR",
+            "KNEE ≥ 0.70 m",
             (0, -d * 0.44, 0.08),
             0.07,
             mats["route_solid"],
@@ -840,9 +874,15 @@ def build_plant(item, root, collections, mats) -> None:
 def build_fixture_objects(brief: dict, collections, mats) -> None:
     for item in brief["objects"]:
         tag = item["semanticTag"]
-        collection_name = "01_ARCHITECTURE" if tag == "partition" else "02_SERVICE" if tag in ("back-bar", "service-counter", "lowered-counter") else "03_FURNITURE"
-        x, y = item["position"]
-        root = add_empty(f"SEM_{slug(item['id'])}__{slug(tag)}", collections[collection_name], (float(x), float(y), 0), float(item.get("rotation", 0)))
+        collection_name = fixture_collection_name(item)
+        x, z = item["position"]
+        elevation = float(item.get("elevationM", 0.0))
+        root = add_empty(
+            f"SEM_{slug(item['id'])}__{slug(tag)}",
+            collections[collection_name],
+            (float(x), float(z), elevation),
+            float(item.get("rotation", 0)),
+        )
         tag_semantic_root(root, item)
 
         if tag == "partition":
@@ -871,6 +911,8 @@ def build_fixture_objects(brief: dict, collections, mats) -> None:
             bbox = item["bbox"]
             add_box(f"{item['id']}__proxy", (bbox["w"], bbox["d"], bbox["h"]), (0, 0, bbox["h"] / 2), mats["stone"], collections[collection_name], parent=root, bevel=0.025)
 
+        move_semantic_hierarchy(root, collections[collection_name])
+
 
 def add_route_segment(name, start, end, width, collection, mat) -> None:
     start_v = Vector((start[0], start[1], 0.018))
@@ -890,43 +932,59 @@ def add_route_segment(name, start, end, width, collection, mat) -> None:
     )
 
 
-def build_accessibility(brief: dict, variant: str, collections, mats) -> None:
-    collection = collections["04_ACCESSIBILITY"]
-    route_width = 1.24 if variant == "pass" else 1.05
-    points = [
-        (-3.55, 2.38),
-        (-3.55, 1.15),
-        (-2.20, 0.70),
-        (-0.65, 0.60),
-        (0.75, -0.10),
-        (1.30, -0.18),
-        (2.55, -0.18),
-        (1.10, 0.74),
-        (-0.55, 1.35),
-        (-1.65, 0.60),
-        (-2.85, 0.12),
-        (-3.42, -0.68),
-    ]
-    for index, (start, end) in enumerate(zip(points, points[1:]), 1):
-        add_route_segment(f"ACCESS_route-{index:02d}__{route_width:.2f}m", start, end, route_width, collection, mats["route"])
+def derive_seat_capacity(brief: dict) -> int:
+    seats = brief.get("seats")
+    if not isinstance(seats, list):
+        raise ValueError("Canonical scene brief must provide a seats array")
+    return sum(1 for seat in seats if seat.get("countsTowardCapacity") is True)
 
-    zones = {
-        "entrance": (-3.55, 1.62),
-        "service-counter": (0.72, 0.18),
-        "accessible-wc": (-3.88, -1.48),
-    }
-    for name, (x, y) in zones.items():
-        disc = add_cylinder(f"ACCESS_turning-zone-{name}__diameter-1.50m", 0.75, 0.018, (x, y, 0.028), mats["route"], collection, vertices=64, bevel=0.004)
-        disc["diameterM"] = 1.50
-        add_torus(f"ACCESS_turning-ring-{name}", 0.725, 0.025, (x, y, 0.046), mats["route_solid"], collection)
-        add_text(f"ACCESS_label-{name}", "Ø 1.50 m", (x, y, 0.06), 0.11, mats["route_solid"], collection, rotation=(0, 0, 0), extrude=0.003)
+
+def build_accessibility(
+    brief: dict,
+    seat_capacity: int,
+    collections,
+    mats,
+) -> None:
+    collection = collections["04_ACCESSIBILITY"]
+    accessibility = brief["accessibility"]
+    route = accessibility["route"]
+    route_target_width = float(route["minimumClearWidthM"])
+    points = [(float(point[0]), float(point[1])) for point in route["centerline"]]
+    if len(points) < 2:
+        raise ValueError("Canonical accessibility route requires at least two centerline points")
+    for index, (start, end) in enumerate(zip(points, points[1:]), 1):
+        add_route_segment(
+            f"ACCESS_route-{index:02d}__target-{route_target_width:.2f}m",
+            start,
+            end,
+            route_target_width,
+            collection,
+            mats["route"],
+        )
+
+    zones = [
+        (
+            str(zone["at"]),
+            float(zone["center"][0]),
+            float(zone["center"][1]),
+            float(zone["diameterM"]),
+        )
+        for zone in accessibility["turningZones"]
+    ]
+    for name, x, z, diameter in zones:
+        radius = diameter / 2
+        safe_name = slug(name)
+        disc = add_cylinder(f"ACCESS_turning-zone-{safe_name}__diameter-{diameter:.2f}m", radius, 0.018, (x, z, 0.028), mats["route"], collection, vertices=64, bevel=0.004)
+        disc["diameterM"] = diameter
+        add_torus(f"ACCESS_turning-ring-{safe_name}", max(radius - 0.025, 0.001), 0.025, (x, z, 0.046), mats["route_solid"], collection)
+        add_text(f"ACCESS_label-{safe_name}", f"Ø {diameter:.2f} m", (x, z, 0.06), 0.11, mats["route_solid"], collection, rotation=(0, 0, 0), extrude=0.003)
 
     b3 = next(item for item in brief["objects"] if item["id"] == "table-b3")
-    bx, by = b3["position"]
-    add_torus("ACCESS_B3_decision-ring", 0.59, 0.038, (bx, by, 0.065), mats["route_solid"], collection)
+    bx, bz = b3["position"]
+    add_torus("ACCESS_B3_decision-ring", 0.59, 0.038, (bx, bz, 0.065), mats["route_solid"], collection)
     add_text(
         "ACCESS_route-width-label",
-        f"{route_width:.2f} m {'CLEAR' if variant == 'pass' else 'PINCH'}",
+        f"TARGET {route_target_width:.2f} m",
         (-0.52, -0.62, 0.065),
         0.12,
         mats["route_solid"],
@@ -935,16 +993,16 @@ def build_accessibility(brief: dict, variant: str, collections, mats) -> None:
         extrude=0.004,
     )
 
-    status = "PASS  •  CLEARANCE WINS" if variant == "pass" else "FAIL  •  B3 BLOCKS THE ROUTE"
-    status_detail = "1.24 m CLEAR ROUTE  •  14 SEATS" if variant == "pass" else "1.05 m PINCH  •  15 SEATS"
+    status = "ACCESSIBILITY TARGETS"
+    status_detail = f"ROUTE ≥ {route_target_width:.2f} m  •  {seat_capacity} CAPACITY POSITIONS"
     add_box("ACCESS_status-plaque", (4.55, 0.50, 0.045), (2.45, 2.86, -0.04), mats["dark_text"], collection, bevel=0.035)
     add_text("ACCESS_status-title", status, (2.45, 2.80, 0.015), 0.17, mats["route_solid"], collection, extrude=0.004)
     add_text("ACCESS_status-detail", status_detail, (2.45, 3.01, 0.015), 0.085, mats["white_text"], collection, extrude=0.003)
 
+    stop_stages = [str(stop["stage"]) for stop in route["stops"]]
     collection["toggleable"] = True
-    collection["continuousRouteSequence"] = "entrance > ordering > pick-up > accessible-seat > accessible-wc"
-    collection["minimumClearWidthM"] = route_width
-    collection["validationState"] = variant
+    collection["continuousRouteSequence"] = " > ".join(stop_stages)
+    collection["targetMinimumClearWidthM"] = route_target_width
     collection["status"] = "demo-target-not-code-certification"
 
 
@@ -1118,10 +1176,21 @@ def validate_glb_landmarks(path: Path, brief: dict) -> dict[str, list[float]]:
 
     nodes = {node.get("name"): node for node in document.get("nodes", [])}
     b3 = next(item for item in brief["objects"] if item["id"] == "table-b3")
+    accessible_table = next(
+        item for item in brief["objects"] if item["id"] == "accessible-table"
+    )
     expected = {
         "SHELL_back_wall_10.00m": [0.0, 1.6, -2.5],
-        "SEM_accessible-table__accessible-table": [-0.55, 0.0, 1.35],
-        "SEM_table-b3__round-table": [float(b3["position"][0]), 0.0, float(b3["position"][1])],
+        "SEM_accessible-table__accessible-table": [
+            float(accessible_table["position"][0]),
+            float(accessible_table.get("elevationM", 0.0)),
+            float(accessible_table["position"][1]),
+        ],
+        "SEM_table-b3__round-table": [
+            float(b3["position"][0]),
+            float(b3.get("elevationM", 0.0)),
+            float(b3["position"][1]),
+        ],
     }
     actual: dict[str, list[float]] = {}
     for name, wanted in expected.items():
@@ -1159,26 +1228,25 @@ def build_variant(repo_root: Path, variant: str, args: argparse.Namespace, textu
     if actual != expected:
         raise ValueError(f"{fixture} shell {actual} conflicts with canonical {expected}")
 
+    seat_capacity = derive_seat_capacity(brief)
     random.seed(5050 if variant == "pass" else 5000)
     np.random.seed(5050 if variant == "pass" else 5000)
     reset_scene()
     collections = make_collections()
-    mats = build_materials(texture_dir, variant)
+    mats = build_materials(texture_dir)
     configure_scene(args.resolution[0], args.resolution[1], args.samples)
 
     build_shell(collections, mats)
     build_fixture_objects(brief, collections, mats)
     build_wall_details(collections, mats)
-    build_accessibility(brief, variant, collections, mats)
+    build_accessibility(brief, seat_capacity, collections, mats)
     build_lighting(collections, mats)
     axon, top = setup_cameras(collections)
 
     scene = bpy.context.scene
     scene["variant"] = variant
     scene["sourceBrief"] = str(fixture.relative_to(repo_root))
-    scene["sourceBriefLabel"] = brief["label"]
-    scene["seatCount"] = int(brief["seatCount"])
-    scene["decision"] = brief.get("decision", "B3 blocks the 1.20 m target route")
+    scene["derivedSeatCapacity"] = seat_capacity
 
     asset_dir = repo_root / "assets" / "archviz"
     asset_dir.mkdir(parents=True, exist_ok=True)
@@ -1192,9 +1260,9 @@ def build_variant(repo_root: Path, variant: str, args: argparse.Namespace, textu
     validate_glb_landmarks(paths["glb"], brief)
 
     if not args.skip_render:
-        # The hero is a clean architectural visual. Validation evidence belongs to
-        # the report-driven top view and remains independently toggleable in the
-        # .blend/GLB instead of being baked into the perspective fallback image.
+        # The hero is a clean architectural visual. Canonical accessibility targets
+        # stay in an independently toggleable collection and are never presented as
+        # validator results; runtime evidence comes only from validation-report.json.
         collections["04_ACCESSIBILITY"].hide_render = True
         scene.camera = axon
         render_still(paths["poster_png"], "PNG")
@@ -1246,6 +1314,7 @@ def write_manifest(repo_root: Path, generated: dict[str, dict[str, Path]], args:
         with fixture.open("r", encoding="utf-8") as handle:
             brief = json.load(handle)
         payload["variants"][variant] = {
+            "derivedSeatCapacity": derive_seat_capacity(brief),
             "artifacts": {
                 key: {
                     "path": str(path.relative_to(repo_root)),

@@ -9,6 +9,13 @@ metadata are stored on `SEM_*` root objects, while softened furniture, props,
 materials, and lighting are child geometry. The output is therefore richer than a
 validator proxy without changing the source decisions.
 
+The generator consumes scene-brief schema `1.0.0`. `semanticGroup` is the
+authoritative Blender collection destination (with `semanticTag` inference only
+for legacy briefs), positions are `(x, z)` on the finished floor, rotations are
+radians around `+y`, and each semantic root starts at `elevationM`. Child geometry
+then rises by `bbox.h`, so elevation is never mistaken for an object's vertical
+centre.
+
 ## Generate everything
 
 From the `ROOM_50` repository root on macOS:
@@ -69,9 +76,16 @@ The axonometric hero PNG/WebP is rendered with `04_ACCESSIBILITY` hidden so it c
 serve as a clean loading/non-WebGL fallback. The `*-top-evidence.*` images render
 that collection visible. Evidence is therefore never baked into the clean hero.
 
-In the GLB, semantic source roots begin with `SEM_` and accessibility evidence
-begins with `ACCESS_`. Custom glTF extras retain source IDs, tags, bounding-box
-dimensions, route state, and concept status.
+In the GLB, semantic source roots begin with `SEM_` and toggleable accessibility
+guides begin with `ACCESS_`. Custom glTF extras retain source IDs, tags,
+bounding-box dimensions, route targets, and concept status. They never contain a
+validator result.
+
+Capacity is derived exclusively from `seats` entries whose
+`countsTowardCapacity` value is `true`; no separate `seatCount` field is read or
+written. Blender scene metadata exposes this derived value as
+`derivedSeatCapacity`. Seat entries are markers only: solid chairs come from
+`objects`, and an unreferenced wheelchair position remains empty.
 
 ## Coordinate contract
 
@@ -89,15 +103,15 @@ these landmarks match:
 This prevents an attractive but spatially mirrored model from reaching the web
 scene.
 
-## Modeled evidence
+## Modeled targets
 
 - fixed shell: 10.00 m × 5.00 m × 3.20 m, 50 m²
 - step-free entrance target: 0.90 m clear
 - lowered counter: 0.76 m high
 - accessible table knee-clearance target: 0.70 m
 - entrance, service-counter, and WC turning zones: Ø 1.50 m
-- pass route evidence: 1.24 m, 14 seats
-- fail pinch evidence: 1.05 m at B3, 15 seats
+- continuous route target: at least 1.20 m
+- capacity markers derived from the brief: 15 before, 14 after
 
 These are the fixture's demonstration targets. Local accessibility rules, fire and
 egress, structure, MEP, plumbing, fabrication, and site conditions remain
@@ -113,6 +127,12 @@ No external models, HDRIs, images, or downloaded textures are used.
 - Typography uses Blender's bundled Bfont and is exported as geometry.
 - Layout data comes only from `demo/fixtures/{pass,fail}.scene-brief.json` and the
   repository's canonical 10 m × 5 m × 3.2 m contract.
+
+The route centreline, 1.20 m target width, and turning-zone geometry come from the
+canonical brief's `accessibility` object. The generator does not read a validation
+report and never labels the GLB pass or fail. At runtime, the independently loaded
+`validation-report.json` supplies the measured `1.05 m` / `1.24 m` results and is
+the only source for pass/fail status and overlays.
 
 The procedural source and generated assets therefore do not introduce third-party
 asset-license or attribution obligations.

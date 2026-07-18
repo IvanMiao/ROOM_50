@@ -7,6 +7,7 @@ import { createLightingRig, createStylePreset, disposeStylePreset, setLightingMo
 const GROUPS = ["shell", "architecture", "service", "furniture", "accessibility", "lighting"];
 const PROCEDURAL_GROUPS = ["shell", "architecture", "service", "furniture"];
 const VISUAL_GROUP = "visual";
+const CANONICAL_GROUPS = new Set(GROUPS);
 const PASS = 0x77df8b;
 const FAIL = 0xff4d45;
 const WARNING = 0xffb347;
@@ -14,6 +15,21 @@ const WARNING = 0xffb347;
 function number(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isPoint2(value) {
+  return Array.isArray(value) && value.length === 2 && value.every(isFiniteNumber);
+}
+
+function isPositiveBbox(value) {
+  return value
+    && isFiniteNumber(value.w) && value.w > 0
+    && isFiniteNumber(value.d) && value.d > 0
+    && isFiniteNumber(value.h) && value.h > 0;
 }
 
 function normalizeShell(brief = {}) {
@@ -34,6 +50,8 @@ function normalizeObject(item, index) {
   const w = Math.max(0.02, number(Array.isArray(bbox) ? bbox[0] : bbox.w ?? bbox.width, 0.6));
   const d = Math.max(0.02, number(Array.isArray(bbox) ? bbox[1] : bbox.d ?? bbox.depth, 0.6));
   const h = Math.max(0.02, number(Array.isArray(bbox) ? bbox[2] : bbox.h ?? bbox.height, 0.75));
+  const elevationM = Math.max(0, number(item.elevationM ?? item.elevation, 0));
+  const declaredGroup = String(item.semanticGroup || "").toLowerCase();
   return {
     ...item,
     id: item.id || `object-${index + 1}`,
@@ -43,19 +61,163 @@ function normalizeObject(item, index) {
     w,
     d,
     h,
-    y: number(item.elevation ?? item.positionY, h / 2),
+    elevationM,
+    y: elevationM + h / 2,
+    semanticGroup: CANONICAL_GROUPS.has(declaredGroup) ? declaredGroup : legacySemanticGroup(semanticTag),
     rotation: number(item.rotation ?? item.rotationY, 0),
   };
 }
 
-function normalizeBrief(brief = {}) {
+export function normalizeSceneBrief(brief = {}) {
   const objects = brief.objects || brief.scene?.objects || brief.items || [];
   const seats = brief.seats || brief.scene?.seats || [];
-  const seatObjects = seats.map((seat, index) => ({ semanticTag: "seat", id: seat.id || `seat-${index + 1}`, bbox: { w: 0.46, d: 0.5, h: 0.82 }, ...seat }));
-  return { shell: normalizeShell(brief), objects: [...objects, ...seatObjects].map(normalizeObject), raw: brief };
+  const canonical = brief.schemaVersion === "1.0.0";
+  if (!Array.isArray(objects) || !Array.isArray(seats)) {
+    throw new Error("Scene brief objects and seats must be arrays");
+  }
+  if (canonical) {
+    const coordinateSystem = brief.coordinateSystem || {};
+    const shell = brief.shell || {};
+    const canonicalHeader = brief.contractId === "room50-accessible-cafe-v1"
+      && brief.status === "concept-demo-not-for-construction"
+      && brief.units === "metres"
+      && coordinateSystem.horizontalPlane === "xz"
+      && coordinateSystem.verticalAxis === "y-up"
+      && coordinateSystem.origin === "shell-centre-at-finished-floor"
+      && coordinateSystem.rotationUnit === "radians"
+      && coordinateSystem.rotationAxis === "y"
+      && coordinateSystem.rotationRule === "right-hand-rule";
+    if (!canonicalHeader) throw new Error("Canonical scene brief header or coordinate system is invalid");
+    if (shell.lengthM !== 10 || shell.widthM !== 5 || shell.clearHeightM !== 3.2 || shell.grossAreaM2 !== 50) {
+      throw new Error("Canonical scene brief must use the fixed 10 × 5 × 3.2 m shell");
+    }
+    if (![brief.observations, brief.userIntent, brief.assumptions].every(Array.isArray)) {
+      throw new Error("Canonical observations, userIntent, and assumptions must be arrays");
+    }
+    if (Object.hasOwn(brief, "seatCount")) throw new Error("Canonical capacity must not use a seatCount field");
+    const rawObjectIds = objects.map((item) => item.id);
+    if (rawObjectIds.some((id) => !id) || new Set(rawObjectIds).size !== rawObjectIds.length) {
+      throw new Error("Canonical scene brief object IDs must be present and unique");
+    }
+    const invalidObject = objects.find((item) =>
+      typeof item.semanticTag !== "string"
+      || !isPoint2(item.position)
+      || !isFiniteNumber(item.rotation)
+      || !isPositiveBbox(item.bbox)
+      || (item.elevationM !== undefined && (!isFiniteNumber(item.elevationM) || item.elevationM < 0)));
+    if (invalidObject) throw new Error(`Canonical object ${invalidObject.id || "(unknown)"} has invalid geometry`);
+    const missingGroup = objects.find((item) => !CANONICAL_GROUPS.has(String(item.semanticGroup || "").toLowerCase()));
+    if (missingGroup) throw new Error(`Canonical object ${missingGroup.id || "(unknown)"} requires a valid semanticGroup`);
+    const seatKinds = new Set(["chair", "stool", "bench-position", "wheelchair-position"]);
+    const invalidSeat = seats.find((seat) =>
+      !seatKinds.has(seat.kind)
+      || !isPoint2(seat.position)
+      || typeof seat.countsTowardCapacity !== "boolean"
+      || typeof seat.accessible !== "boolean");
+    if (invalidSeat) throw new Error(`Canonical seat ${invalidSeat.id || "(unknown)"} is invalid`);
+  }
+  const normalizedObjects = objects.map(normalizeObject);
+  const objectIdList = normalizedObjects.map((item) => item.id);
+  const seatIdList = seats.map((seat) => seat.id);
+  if (new Set(objectIdList).size !== objectIdList.length) throw new Error("Scene brief object IDs must be unique");
+  if (canonical && (seatIdList.some((id) => !id) || new Set(seatIdList).size !== seatIdList.length)) {
+    throw new Error("Canonical scene brief seat IDs must be present and unique");
+  }
+  const objectIds = new Set(normalizedObjects.map((item) => item.id));
+  const objectsById = new Map(normalizedObjects.map((item) => [item.id, item]));
+  const seatIds = new Set(seatIdList);
+  if (canonical && seatIdList.some((id) => objectIds.has(id))) {
+    throw new Error("Canonical object and seat IDs must be globally unique");
+  }
+  const danglingSeat = seats.find((seat) => seat.objectId && !objectIds.has(seat.objectId));
+  if (danglingSeat) throw new Error(`Seat ${danglingSeat.id || "(unknown)"} references missing object ${danglingSeat.objectId}`);
+  if (canonical) {
+    const expectedSeatTags = { chair: "chair", stool: "stool", "bench-position": "bench-seat" };
+    const mismatchedSeat = seats.find((seat) =>
+      seat.objectId
+      && expectedSeatTags[seat.kind]
+      && objectsById.get(seat.objectId)?.semanticTag !== expectedSeatTags[seat.kind]);
+    if (mismatchedSeat) throw new Error(`Seat ${mismatchedSeat.id} references incompatible solid geometry`);
+    const accessibility = brief.accessibility;
+    const centerline = accessibility?.route?.centerline;
+    const stops = accessibility?.route?.stops;
+    if (!Array.isArray(centerline) || !Array.isArray(stops)) throw new Error("Canonical accessibility route is incomplete");
+    if (accessibility.route.minimumClearWidthM !== 1.2 || !centerline.every(isPoint2)) {
+      throw new Error("Canonical accessibility route coordinates or target width are invalid");
+    }
+    const expectedStages = ["entrance", "ordering", "pick-up", "accessible-seat", "accessible-wc"];
+    const orderedStops = stops.length === expectedStages.length && stops.every((stop, index) =>
+      stop.stage === expectedStages[index]
+      && Number.isInteger(stop.pointIndex)
+      && stop.pointIndex >= 0
+      && stop.pointIndex < centerline.length
+      && (index === 0 || stop.pointIndex > stops[index - 1].pointIndex));
+    if (!orderedStops) throw new Error("Accessibility route stops must be ordered and reference centerline points");
+    if (accessibility?.turningZones?.length !== 3 || accessibility?.doors?.length !== 2) {
+      throw new Error("Canonical accessibility data requires three turning zones and two doors");
+    }
+    if (accessibility.turningZones.some((zone) => !isPoint2(zone.center) || !isFiniteNumber(zone.diameterM) || zone.diameterM <= 0)) {
+      throw new Error("Canonical turning-zone geometry is invalid");
+    }
+    if (accessibility.doors.some((door) =>
+      !isPoint2(door.position)
+      || !isFiniteNumber(door.rotation)
+      || !isFiniteNumber(door.clearWidthM)
+      || door.clearWidthM <= 0
+      || typeof door.stepFree !== "boolean")) {
+      throw new Error("Canonical door geometry is invalid");
+    }
+    const turningStages = accessibility.turningZones.map((zone) => zone.at);
+    if (turningStages.join("|") !== "entrance|service-counter|accessible-wc") {
+      throw new Error("Canonical turning zones must follow entrance, service-counter, accessible-wc order");
+    }
+    const doorStages = new Set(accessibility.doors.map((door) => door.at));
+    if (doorStages.size !== 2 || !doorStages.has("entrance") || !doorStages.has("accessible-wc")) {
+      throw new Error("Canonical doors must cover the entrance and accessible WC");
+    }
+    const objectReferences = [
+      accessibility?.serviceCounter?.counterObjectId,
+      accessibility?.serviceCounter?.loweredSegmentObjectId,
+      accessibility?.accessibleTable?.tableObjectId,
+      ...accessibility.doors.map((door) => door.objectId).filter(Boolean),
+    ];
+    if (objectReferences.some((id) => !objectIds.has(id))) throw new Error("Accessibility object reference is missing");
+    const counter = objectsById.get(accessibility.serviceCounter.counterObjectId);
+    const loweredCounter = objectsById.get(accessibility.serviceCounter.loweredSegmentObjectId);
+    const accessibleTable = objectsById.get(accessibility.accessibleTable.tableObjectId);
+    if (counter?.semanticTag !== "service-counter"
+      || loweredCounter?.semanticTag !== "lowered-counter"
+      || accessibleTable?.semanticTag !== "accessible-table") {
+      throw new Error("Accessibility references point to incompatible semantic objects");
+    }
+    const wheelchairSeat = seats.find((seat) => seat.id === accessibility?.accessibleTable?.wheelchairSeatId);
+    if (!wheelchairSeat
+      || !seatIds.has(wheelchairSeat.id)
+      || wheelchairSeat.kind !== "wheelchair-position"
+      || wheelchairSeat.accessible !== true
+      || wheelchairSeat.countsTowardCapacity !== true
+      || wheelchairSeat.objectId !== undefined) {
+      throw new Error("Accessible table must reference an empty accessible wheelchair position");
+    }
+    if (!accessibility?.accessibleTable?.kneeClearanceVolume) {
+      throw new Error("Accessible table knee-clearance volume is missing");
+    }
+    const kneeVolume = accessibility.accessibleTable.kneeClearanceVolume;
+    if (!isPoint2(kneeVolume.position) || !isFiniteNumber(kneeVolume.rotation) || !isPositiveBbox(kneeVolume.bbox)) {
+      throw new Error("Accessible table knee-clearance volume is invalid");
+    }
+  }
+  return {
+    shell: normalizeShell(brief),
+    objects: normalizedObjects,
+    seats,
+    seatCapacity: seats.filter((seat) => seat.countsTowardCapacity === true).length,
+    accessibility: brief.accessibility || null,
+    raw: brief,
+  };
 }
 
-function semanticGroup(tag) {
+function legacySemanticGroup(tag) {
   if (/wall|door|partition|window|wc|toilet|architecture/.test(tag)) return "architecture";
   if (/counter|bar|service|espresso|pickup|order/.test(tag)) return "service";
   if (/route|turn|clearance|access/.test(tag)) return "accessibility";
@@ -176,14 +338,51 @@ function buildShell(group, shell, style) {
   group.add(grid);
 }
 
-function reportChecks(report) {
-  const source = report?.checks || report?.results || report?.validationResults || report?.report?.checks || [];
-  if (Array.isArray(source)) return source;
-  return Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }));
+function reportChecks(report, expectedSeatCapacity) {
+  const source = report?.checks || report?.results || report?.validationResults || report?.report?.checks;
+  const checks = Array.isArray(source)
+    ? source
+    : source && typeof source === "object"
+      ? Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }))
+      : [];
+  if (!checks.length) throw new Error("Validation report must contain at least one check");
+  const allowedStatuses = new Set(["pass", "fail", "warning"]);
+  const checkIds = checks.map((check) => check.checkId || check.id);
+  if (checkIds.some((id) => !id) || new Set(checkIds).size !== checkIds.length) {
+    throw new Error("Validation report check IDs must be present and unique");
+  }
+  if (checks.some((check) => !allowedStatuses.has(check.status))) {
+    throw new Error("Validation report contains an unsupported check status");
+  }
+  const expectedCheckIds = ["routeWidth", "turningZones", "counterHeight", "kneeClearance", "seatCount"];
+  if (checks.length !== expectedCheckIds.length || expectedCheckIds.some((id) => !checkIds.includes(id))) {
+    throw new Error("Validation report must contain the complete canonical check set");
+  }
+  if (expectedSeatCapacity !== undefined) {
+    const seatCheck = checks.find((check) => (check.checkId || check.id) === "seatCount");
+    if (!seatCheck || Number(seatCheck.measured) !== expectedSeatCapacity) {
+      throw new Error("Validation report seat measurement does not match brief-derived capacity");
+    }
+  }
+  const counts = {
+    passed: checks.filter((check) => check.status === "pass").length,
+    failed: checks.filter((check) => check.status === "fail").length,
+    warnings: checks.filter((check) => check.status === "warning").length,
+  };
+  const expectedStatus = counts.failed ? "fail" : counts.warnings ? "warning" : "pass";
+  const summary = report?.summary;
+  if (!summary
+    || summary.status !== expectedStatus
+    || summary.passed !== counts.passed
+    || summary.failed !== counts.failed
+    || summary.warnings !== counts.warnings) {
+    throw new Error("Validation report summary does not match its checks");
+  }
+  return checks;
 }
 
-function geometryItems(report) {
-  const checks = reportChecks(report);
+function geometryItems(report, expectedSeatCapacity) {
+  const checks = reportChecks(report, expectedSeatCapacity);
   const items = [];
   checks.forEach((check) => {
     const geometry = check.violationGeometry || check.evidenceGeometry || check.geometry || [];
@@ -283,7 +482,7 @@ export async function createStarterScene(options) {
   const container = typeof options.container === "string" ? document.querySelector(options.container) : options.container;
   if (!container) throw new Error("createStarterScene requires a container element");
 
-  let brief = normalizeBrief(await readJson(options.brief));
+  let brief = normalizeSceneBrief(await readJson(options.brief));
   let report = await readJson(options.report);
   let presetId = options.preset || "hearth";
   let lightingMode = options.lighting || "day";
@@ -363,14 +562,20 @@ export async function createStarterScene(options) {
     clearGroup(validatorOverlay, { disposeMaterials: true });
     clearGroup(groups.lighting);
     buildShell(groups.shell, brief.shell, style);
-    brief.objects.forEach((item) => groups[semanticGroup(item.semanticTag)].add(createObject(item, style)));
-    geometryItems(report).forEach((entry) => overlayShape(validatorOverlay, entry));
+    brief.objects.forEach((item) => groups[item.semanticGroup].add(createObject(item, style)));
+    geometryItems(report, brief.seatCapacity).forEach((entry) => overlayShape(validatorOverlay, entry));
     groups.lighting.add(createLightingRig(THREE, presetId, lightingMode));
     const extent = Math.max(brief.shell.length, brief.shell.width);
     views.perspective = { position: new THREE.Vector3(extent * 0.88, extent * 0.70, extent * 0.92), target: new THREE.Vector3(0, 0.55, 0) };
     views.top = { position: new THREE.Vector3(0.01, extent * 1.7, 0.01), target: new THREE.Vector3(0, 0, 0) };
     views.accessibility = { position: new THREE.Vector3(extent * 0.65, extent * 1.12, extent * 0.82), target: new THREE.Vector3(0, 0, 0) };
-    options.onStatus?.({ brief: brief.raw, report, checks: reportChecks(report), overlayCount: validatorOverlay.children.length });
+    options.onStatus?.({
+      brief: brief.raw,
+      report,
+      checks: reportChecks(report, brief.seatCapacity),
+      overlayCount: validatorOverlay.children.length,
+      seatCapacity: brief.seatCapacity,
+    });
   }
 
   function setPreset(nextPreset) {
@@ -397,7 +602,7 @@ export async function createStarterScene(options) {
     const revision = ++loadRevision;
     const resolvedVisual = nextVisual === undefined ? visualSource : nextVisual;
     const [resolvedBrief, resolvedReport] = await Promise.all([
-      nextBrief ? readJson(nextBrief).then(normalizeBrief) : Promise.resolve(brief),
+      nextBrief ? readJson(nextBrief).then(normalizeSceneBrief) : Promise.resolve(brief),
       nextReport === undefined ? Promise.resolve(report) : readJson(nextReport),
     ]);
     if (revision !== loadRevision || destroyed) return { status: "superseded" };

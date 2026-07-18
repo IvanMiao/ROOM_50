@@ -36,7 +36,7 @@ Prefer route continuity over seat count. Aim for 14–18 seats only if clearance
 4. Add the accessible route and turning circles as translucent, independently toggleable geometry.
 5. Add Perspective, Top, and Accessibility views.
 6. Add restrained concept materials, basic lighting, and a non-WebGL fallback.
-7. Write `scene-brief.json` containing dimensions, assumptions, and modeled checks.
+7. Write `scene-brief.json` against `scene-brief.schema.json` 1.0.0. Use x/z floor coordinates, y-up elevation, explicit semantic groups, object references, and capacity seats; do not add a separate `seatCount` field.
 8. Test the page at desktop and mobile widths and provide deployment instructions for Netlify.
 
 ### Optional ArchViz presentation layer

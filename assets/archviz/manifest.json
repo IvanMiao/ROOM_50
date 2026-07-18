@@ -22,30 +22,31 @@
   },
   "variants": {
     "pass": {
+      "derivedSeatCapacity": 14,
       "artifacts": {
         "blend": {
           "path": "assets/archviz/room50-cafe-pass.blend",
-          "bytes": 303883
+          "bytes": 305193
         },
         "glb": {
           "path": "assets/archviz/room50-cafe-pass.glb",
-          "bytes": 11614660
+          "bytes": 11796568
         },
         "poster_png": {
           "path": "assets/archviz/room50-cafe-pass.png",
-          "bytes": 1590476
+          "bytes": 1597684
         },
         "poster_webp": {
           "path": "assets/archviz/room50-cafe-pass.webp",
-          "bytes": 102022
+          "bytes": 104404
         },
         "top_png": {
           "path": "assets/archviz/room50-cafe-pass-top-evidence.png",
-          "bytes": 1527147
+          "bytes": 1517219
         },
         "top_webp": {
           "path": "assets/archviz/room50-cafe-pass-top-evidence.webp",
-          "bytes": 79112
+          "bytes": 79544
         }
       },
       "coordinateLandmarks": {
@@ -67,30 +68,31 @@
       }
     },
     "fail": {
+      "derivedSeatCapacity": 15,
       "artifacts": {
         "blend": {
           "path": "assets/archviz/room50-cafe-fail.blend",
-          "bytes": 308743
+          "bytes": 310646
         },
         "glb": {
           "path": "assets/archviz/room50-cafe-fail.glb",
-          "bytes": 11777440
+          "bytes": 11959760
         },
         "poster_png": {
           "path": "assets/archviz/room50-cafe-fail.png",
-          "bytes": 1594217
+          "bytes": 1601122
         },
         "poster_webp": {
           "path": "assets/archviz/room50-cafe-fail.webp",
-          "bytes": 102842
+          "bytes": 105362
         },
         "top_png": {
           "path": "assets/archviz/room50-cafe-fail-top-evidence.png",
-          "bytes": 1511635
+          "bytes": 1519444
         },
         "top_webp": {
           "path": "assets/archviz/room50-cafe-fail-top-evidence.webp",
-          "bytes": 77564
+          "bytes": 80074
         }
       },
       "coordinateLandmarks": {

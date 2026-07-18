@@ -1,4 +1,4 @@
-import { createStarterScene } from "../kit/starter-scene.js";
+import { createStarterScene, normalizeSceneBrief } from "../kit/starter-scene.js";
 import { versionedArchvizUrl } from "../kit/archviz-version.js";
 
 const SCENARIOS = {
@@ -8,7 +8,6 @@ const SCENARIOS = {
     visual: { url: versionedArchvizUrl("../assets/archviz/room50-cafe-fail.glb"), variant: "fail", name: "archviz_fail" },
     poster: versionedArchvizUrl("../assets/archviz/room50-cafe-fail.webp"),
     decision: "B3 桌旁座椅侵入动线，最窄处只剩 1.05 m。",
-    delta: "15 seats · one fix required",
   },
   pass: {
     brief: "./fixtures/pass.scene-brief.json",
@@ -16,7 +15,6 @@ const SCENARIOS = {
     visual: { url: versionedArchvizUrl("../assets/archviz/room50-cafe-pass.glb"), variant: "pass", name: "archviz_pass" },
     poster: versionedArchvizUrl("../assets/archviz/room50-cafe-pass.webp"),
     decision: "B3 向东移动 0.55 m，并移除一把椅子：净宽回到 1.24 m。",
-    delta: "14 seats · clearance wins",
   },
 };
 
@@ -46,7 +44,12 @@ function displayName(checkId) {
   })[checkId] || checkId;
 }
 
-function renderStatus({ brief, report, checks }) {
+function capacityFromBrief(brief) {
+  return (brief?.seats || []).filter((seat) => seat.countsTowardCapacity === true).length;
+}
+
+function renderStatus({ brief, report, checks, seatCapacity = capacityFromBrief(brief) }) {
+  validateReportSummary(report, checks, seatCapacity);
   const failed = checks.filter((check) => check.status === "fail").length;
   const warnings = checks.filter((check) => check.status === "warning").length;
   const passed = checks.length - failed - warnings;
@@ -57,6 +60,7 @@ function renderStatus({ brief, report, checks }) {
   ui.runState.closest(".run-state").className = `run-state is-${overall}`;
   ui.label.textContent = brief.label || "ROOM/50 scene";
   ui.summary.textContent = `${passed} pass / ${failed} fail${warnings ? ` / ${warnings} warn` : ""}`;
+  ui.seatDelta.textContent = `${seatCapacity} capacity positions · ${overall === "pass" ? "clearance wins" : "one fix required"}`;
   ui.list.replaceChildren(...checks.map((check) => {
     const row = document.createElement("article");
     row.className = `check-row is-${check.status}`;
@@ -108,9 +112,49 @@ function setPoster(scenario) {
 }
 
 function checksFromReport(report) {
-  const source = report?.checks || report?.results || report?.validationResults || [];
-  if (Array.isArray(source)) return source;
-  return Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }));
+  const source = report?.checks || report?.results || report?.validationResults;
+  const checks = Array.isArray(source)
+    ? source
+    : source && typeof source === "object"
+      ? Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }))
+      : [];
+  validateReportSummary(report, checks);
+  return checks;
+}
+
+function validateReportSummary(report, checks, expectedSeatCapacity) {
+  const allowedStatuses = new Set(["pass", "fail", "warning"]);
+  const checkIds = checks.map((check) => check.checkId || check.id);
+  if (!checks.length
+    || checkIds.some((id) => !id)
+    || new Set(checkIds).size !== checkIds.length
+    || checks.some((check) => !allowedStatuses.has(check.status))) {
+    throw new Error("Validation report checks are missing or invalid");
+  }
+  const expectedCheckIds = ["routeWidth", "turningZones", "counterHeight", "kneeClearance", "seatCount"];
+  if (checks.length !== expectedCheckIds.length || expectedCheckIds.some((id) => !checkIds.includes(id))) {
+    throw new Error("Validation report must contain the complete canonical check set");
+  }
+  if (expectedSeatCapacity !== undefined) {
+    const seatCheck = checks.find((check) => (check.checkId || check.id) === "seatCount");
+    if (!seatCheck || Number(seatCheck.measured) !== expectedSeatCapacity) {
+      throw new Error("Validation report seat measurement does not match brief-derived capacity");
+    }
+  }
+  const counts = {
+    passed: checks.filter((check) => check.status === "pass").length,
+    failed: checks.filter((check) => check.status === "fail").length,
+    warnings: checks.filter((check) => check.status === "warning").length,
+  };
+  const expectedStatus = counts.failed ? "fail" : counts.warnings ? "warning" : "pass";
+  const summary = report?.summary;
+  if (!summary
+    || summary.status !== expectedStatus
+    || summary.passed !== counts.passed
+    || summary.failed !== counts.failed
+    || summary.warnings !== counts.warnings) {
+    throw new Error("Validation report summary does not match its checks");
+  }
 }
 
 async function renderScenarioData(scenario, revision = null) {
@@ -118,7 +162,8 @@ async function renderScenarioData(scenario, revision = null) {
   if (!briefResponse.ok || !reportResponse.ok) throw new Error("Scenario fixtures could not be loaded");
   const [brief, report] = await Promise.all([briefResponse.json(), reportResponse.json()]);
   if (revision !== null && revision !== scenarioRevision) return false;
-  renderStatus({ brief, report, checks: checksFromReport(report) });
+  const normalizedBrief = normalizeSceneBrief(brief);
+  renderStatus({ brief, report, checks: checksFromReport(report), seatCapacity: normalizedBrief.seatCapacity });
   return true;
 }
 
@@ -167,7 +212,6 @@ async function selectScenario(name) {
     activeScenario = name;
     document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.view === "accessibility"));
     ui.decision.textContent = scenario.decision;
-    ui.seatDelta.textContent = scenario.delta;
     history.replaceState(null, "", `#${name}`);
   } catch (error) {
     if (revision !== scenarioRevision) return;
