@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ROOM/50 scene brief",
   "description": "Canonical geometry handoff written by a ROOM/50 builder and read by the validator and renderer. All dimensions are in metres.",
-  "$comment": "Runtime consumers must also enforce unique ids, valid object/seat references, strictly increasing in-range route stop indexes, and consistency between referenced objects and declared clearance geometry.",
+  "$comment": "Runtime consumers must also enforce globally unique ids, valid object/seat/door references, stage-appropriate route stop target collections, strictly increasing in-range route stop indexes, route stop proximity to referenced targets, symmetric overlap exemptions, and consistency between referenced objects and declared clearance geometry.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -205,15 +205,15 @@
     "collisionPolicy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["obstacle"],
+      "required": ["obstacle", "allowOverlapWith"],
       "properties": {
         "obstacle": {
           "type": "boolean",
-          "description": "Whether this object blocks route and clearance geometry."
+          "description": "Whether this object blocks route and clearance geometry. This does not by itself exempt the object from shell-boundary or object-object intersection checks."
         },
         "allowOverlapWith": {
           "type": "array",
-          "description": "Explicit object ids exempted from object-object intersection checks.",
+          "description": "Explicit object ids exempted from object-object intersection checks. The exemption is symmetric: either object may declare the other.",
           "items": {
             "$ref": "#/$defs/id"
           },
@@ -234,7 +234,8 @@
         "semanticGroup",
         "position",
         "rotation",
-        "bbox"
+        "bbox",
+        "collision"
       ],
       "properties": {
         "id": {
@@ -303,7 +304,7 @@
     "routeStop": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stage", "pointIndex"],
+      "required": ["stage", "pointIndex", "target"],
       "properties": {
         "stage": {
           "enum": ["entrance", "ordering", "pick-up", "accessible-seat", "accessible-wc"]
@@ -312,8 +313,26 @@
           "type": "integer",
           "minimum": 0,
           "description": "Index into route.centerline. Stop indexes must be strictly increasing and in range."
+        },
+        "target": {
+          "$ref": "#/$defs/routeTarget"
         }
       }
+    },
+    "routeTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collection", "id"],
+      "properties": {
+        "collection": {
+          "enum": ["objects", "seats", "doors"],
+          "description": "Collection containing the real spatial target for this route stop. Runtime validation enforces doors for entrance and accessible-wc, objects for ordering and pick-up, and seats for accessible-seat."
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "description": "Reference to the modeled feature that makes a route stage real rather than a self-reported label. The referenced id must exist in the declared collection."
     },
     "route": {
       "type": "object",
