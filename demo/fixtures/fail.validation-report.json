@@ -1,0 +1,21 @@
+{
+  "summary": { "status": "fail", "passed": 4, "failed": 1, "warnings": 0 },
+  "checks": [
+    {
+      "checkId": "routeWidth", "status": "fail", "measured": "1.05 m", "required": ">= 1.20 m",
+      "message": "B3 route-side chair creates a 150 mm bottleneck.",
+      "violationGeometry": [{ "type": "polyline", "points": [[-3.3, 2.35], [-3.25, 1.25], [-1.7, 0.65], [-0.42, 0.05], [1.05, -0.45], [0.3, 0.9], [-1.85, -0.08], [-3.5, -0.65]] }]
+    },
+    {
+      "checkId": "turningZones", "status": "pass", "measured": "3 clear", "required": "3 × Ø1.50 m",
+      "evidenceGeometry": [
+        { "type": "circle", "center": [-3.3, 1.55], "diameter": 1.5 },
+        { "type": "circle", "center": [0.45, -0.45], "diameter": 1.5 },
+        { "type": "circle", "center": [-3.75, -1.45], "diameter": 1.5 }
+      ]
+    },
+    { "checkId": "counterHeight", "status": "pass", "measured": "0.76 m", "required": "<= 0.76 m", "violationGeometry": [] },
+    { "checkId": "kneeClearance", "status": "pass", "measured": "0.71 m", "required": ">= 0.70 m", "violationGeometry": [] },
+    { "checkId": "seatCount", "status": "pass", "measured": 15, "required": "14–18", "violationGeometry": [] }
+  ]
+}
