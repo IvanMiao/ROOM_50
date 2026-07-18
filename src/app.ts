@@ -144,7 +144,9 @@ DISCOVER FIRST
 1. Open ${pageUrl()}
 2. Read ${pageUrl()}llms.txt
 3. Read ${pageUrl()}agent/scene-contract.json — this is the canonical machine-readable source.
-4. Inspect the reference image before proposing geometry. Separate observed facts from assumptions.
+4. Read ${pageUrl()}agent/scene-brief.schema.json — scene-brief.json must conform to this interface.
+5. Read ${pageUrl()}agent/workflow.md for the selected build path and validation handoff.
+6. Inspect the reference image before proposing geometry. Separate observed facts from assumptions.
 
 REFERENCE
 ${referenceDescription()}
@@ -180,9 +182,12 @@ ${engineInstructions()}
 REQUIRED PROCESS
 1. Extract: list what the reference actually shows, with confidence levels.
 2. Plan: state coordinate system, scale, zoning, object list, and assumptions before building.
-3. Build: create the smallest model that demonstrates the requested spatial idea.
-4. Check: measure the route, three turning zones, door, lowered counter, and accessible table clearance.
-5. Report: return files created, exact dimensions used, screenshots/renders, known gaps, and the next decision needed from the user.
+3. Build: create the smallest model that demonstrates the requested spatial idea, and write scene-brief.json so it conforms to /agent/scene-brief.schema.json.
+4. Validate: run \`npm run validate -- path/to/scene-brief.json\` and read the generated validation-report.json.
+5. Repair: for every failed check, use its measured, required, and violationGeometry data to update both the model and scene-brief.json. Never edit or hand-author validation-report.json to manufacture a pass.
+6. Repeat: run build → validate → read report → repair until every validation check reports pass. If the validator command is unavailable, stop and report that blocker instead of claiming completion.
+7. Evidence: generate the accessibility overlay from validator report data, not from agent-authored pass claims.
+8. Report: return files created, exact dimensions used, screenshots/renders, validation-report.json, known gaps, and the next decision needed from the user.
 
 DEFINITION OF DONE
 - The model is true-scale and the 50 m² boundary is obvious.
@@ -190,6 +195,8 @@ DEFINITION OF DONE
 - Accessibility overlays can be shown independently from presentation materials.
 - Top view visibly demonstrates the continuous route and turning zones.
 - Any conflict between the uploaded drawing and this fixed contract is reported, not silently resolved.
+- validation-report.json reports pass for every validation check.
+- The evidence overlay is generated from validator report data rather than agent self-report.
 - The result is labeled “concept demo — not for construction.”
 
 Do not widen the task to other room types, automatic code certification, photoreal rendering, or a production configurator.`;

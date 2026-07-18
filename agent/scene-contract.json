@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "contractVersion": "1.0.0",
+  "contractVersion": "1.1.0",
   "id": "room50-accessible-cafe-v1",
   "status": "exploratory-concept-not-for-construction",
   "canonical": true,
@@ -126,7 +126,9 @@
     "reference conflicts are reported rather than silently resolved",
     "files and opening or deployment instructions are reported",
     "known gaps and next user decision are reported",
-    "result is labeled concept demo — not for construction"
+    "result is labeled concept demo — not for construction",
+    "validation-report.json contains pass status for every validation check",
+    "evidence overlay is generated from validator report data rather than agent self-report"
   ],
   "referencePolicy": {
     "browserUploadsAreStored": false,
