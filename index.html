@@ -161,7 +161,7 @@
             <section class="form-step" aria-labelledby="step-one-title">
               <div class="step-title">
                 <span>1</span>
-                <div><p>REFERENCE</p><h3 id="step-one-title">Upload an image or floor plan</h3></div>
+                <div><p>REFERENCE</p><h3 id="step-one-title">Choose or upload a floor plan</h3></div>
               </div>
               <div class="upload-zone" id="uploadZone">
                 <input id="planUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
@@ -178,10 +178,26 @@
                   <button type="button" id="removeUpload" aria-label="Remove uploaded image">×</button>
                 </div>
               </div>
-              <div class="sample-row">
-                <span>No drawing?</span>
-                <button class="inline-button" id="useSample" type="button">Use the built-in 10 x 5 m sample →</button>
-              </div>
+              <fieldset class="sample-picker">
+                <legend>Or start with a 50 m² plan variant</legend>
+                <div class="sample-plan-grid">
+                  <button class="sample-plan-card is-selected" type="button" data-sample-plan="end-entry" aria-pressed="true">
+                    <img src="/assets/sample-plan.svg" alt="" width="1000" height="500" loading="lazy" />
+                    <span><strong>End entry</strong><small>Short-side entry</small></span>
+                    <i aria-hidden="true">✓</i>
+                  </button>
+                  <button class="sample-plan-card" type="button" data-sample-plan="central-entry" aria-pressed="false">
+                    <img src="/assets/plans/central-entry.svg" alt="" width="1000" height="500" loading="lazy" />
+                    <span><strong>Central entry</strong><small>Split service + WC</small></span>
+                    <i aria-hidden="true">✓</i>
+                  </button>
+                  <button class="sample-plan-card" type="button" data-sample-plan="fixed-core" aria-pressed="false">
+                    <img src="/assets/plans/fixed-core.svg" alt="" width="1000" height="500" loading="lazy" />
+                    <span><strong>Fixed core</strong><small>Core + column</small></span>
+                    <i aria-hidden="true">✓</i>
+                  </button>
+                </div>
+              </fieldset>
             </section>
 
             <section class="form-step" aria-labelledby="step-two-title">
@@ -238,7 +254,7 @@
               <button class="button button-primary" id="copyPrompt" type="button">Copy prompt <span>⧉</span></button>
               <button class="button button-outline" id="downloadBrief" type="button">Download brief.json <span>↓</span></button>
             </div>
-            <p class="prompt-tip"><span>TIP</span> Uploads exist only in this browser. Send the source image with the prompt, or let an agent with browser control inspect this page directly.</p>
+            <p class="prompt-tip"><span>TIP</span> Built-in plans are public and fetchable. Uploads exist only in this browser, so send an uploaded source image with the prompt.</p>
           </aside>
         </div>
       </section>

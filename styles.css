@@ -868,18 +868,95 @@ h2 em {
   line-height: 1;
 }
 
-.sample-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 13px;
-  color: var(--ink-soft);
-  font-size: 11px;
+.sample-picker {
+  min-width: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  border: 0;
 }
 
-.inline-button {
-  padding: 0;
+.sample-picker legend {
+  margin-bottom: 10px;
+  color: var(--ink-soft);
+  font: 700 9px/1.4 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sample-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.sample-plan-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 132px;
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
   color: var(--ink);
+  background: rgba(255, 253, 247, 0.48);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.sample-plan-card:hover {
+  background: var(--white);
+  border-color: var(--ink);
+}
+
+.sample-plan-card.is-selected {
+  background: rgba(215, 255, 63, 0.13);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.sample-plan-card img {
+  display: block;
+  width: 100%;
+  height: 64px;
+  margin-bottom: 9px;
+  object-fit: contain;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.sample-plan-card strong,
+.sample-plan-card small {
+  display: block;
+  padding-right: 18px;
+}
+
+.sample-plan-card strong {
+  overflow: hidden;
   font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sample-plan-card small {
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font: 650 8px/1.35 var(--mono);
+}
+
+.sample-plan-card i {
+  position: absolute;
+  right: 9px;
+  bottom: 10px;
+  opacity: 0;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.sample-plan-card.is-selected i {
+  opacity: 1;
 }
 
 .field-label {
@@ -1522,9 +1599,26 @@ textarea:focus {
     height: 82px;
   }
 
-  .sample-row {
-    align-items: flex-start;
-    flex-direction: column;
+  .sample-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sample-plan-card {
+    grid-template-columns: 96px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 72px;
+  }
+
+  .sample-plan-card img {
+    width: 96px;
+    height: 54px;
+    margin: 0;
+  }
+
+  .sample-plan-card i {
+    position: static;
+    padding-right: 4px;
   }
 
   #promptOutput {
