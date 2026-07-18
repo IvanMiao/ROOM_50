@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ROOM/50 是一个面向 Agent 的探索性 Demo：把 50㎡无障碍咖啡馆的图纸与意图整理成可执行的 Three.js 或 Blender MCP 建模 Prompt。"
+    />
+    <meta name="theme-color" content="#f3f0e8" />
+    <meta property="og:title" content="ROOM/50 — Agent-ready spatial brief" />
+    <meta
+      property="og:description"
+      content="Upload a plan, state an intent, and hand an agent a bounded 3D room brief."
+    />
+    <title>ROOM/50 — 无障碍咖啡馆 Agent 建模简报</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM instructions" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#brief-builder">跳到 Prompt 生成器</a>
+
+    <header class="site-header" aria-label="网站导航">
+      <a class="brand" href="#top" aria-label="ROOM/50 首页">
+        <span class="brand-mark" aria-hidden="true">R/50</span>
+        <span class="brand-copy">Agent-ready spatial brief</span>
+      </a>
+      <nav class="nav-links" aria-label="主导航">
+        <a href="#case">固定用例</a>
+        <a href="#brief-builder">生成简报</a>
+        <a href="#agent-entry">Agent 入口</a>
+      </nav>
+      <a class="button button-small button-dark" href="#brief-builder">开始生成</a>
+    </header>
+
+    <main id="top">
+      <section class="hero section-shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> EXPERIMENT 01 · ACCESSIBLE CAFÉ</div>
+          <h1 id="hero-title">
+            让空间意图，<br />
+            <em>成为 Agent 能执行的模型。</em>
+          </h1>
+          <p class="hero-lede">
+            上传一张图片或图纸，描述你想要的体验。ROOM/50 会把它约束成一个明确的小任务：在
+            <strong>50㎡</strong> 商铺里设计一间无障碍咖啡馆，并生成可直接交给 Agent 的 Three.js 或
+            Blender MCP Prompt。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#brief-builder">制作 Agent Prompt <span>↘</span></a>
+            <button class="text-button" id="copyPageUrl" type="button">复制本页给 Agent <span>⧉</span></button>
+          </div>
+          <dl class="hero-metrics" aria-label="场景摘要">
+            <div><dt>50</dt><dd>m² 固定面积</dd></div>
+            <div><dt>10 × 5</dt><dd>m 基准外壳</dd></div>
+            <div><dt>1.5</dt><dd>m 回转直径</dd></div>
+          </dl>
+        </div>
+
+        <div class="scene-card" aria-label="50平方米无障碍咖啡馆三维概念预览">
+          <div class="scene-toolbar">
+            <div>
+              <span class="status-dot"></span>
+              <span>BASELINE SCENE · 1:1</span>
+            </div>
+            <span>drag to orbit</span>
+          </div>
+          <div class="scene-stage" id="sceneStage">
+            <div class="scene-fallback" aria-hidden="true">
+              <img src="/assets/sample-plan.svg" alt="" />
+              <span>正在载入 3D 场景…</span>
+            </div>
+            <div id="sceneCanvas" aria-hidden="true"></div>
+            <div class="scene-label label-entry">无台阶入口</div>
+            <div class="scene-label label-counter">低位点单台</div>
+            <div class="scene-label label-turn">Ø 1.5m</div>
+          </div>
+          <div class="scene-footer">
+            <div class="view-switcher" aria-label="预览视角">
+              <button class="is-active" type="button" data-view="perspective">透视</button>
+              <button type="button" data-view="top">平面</button>
+              <button type="button" data-view="access">动线</button>
+            </div>
+            <span class="scene-note">概念预览 · 非施工图</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="case-section" id="case" aria-labelledby="case-title">
+        <div class="section-shell">
+          <div class="section-heading">
+            <div>
+              <p class="section-index">01 / 固定用例</p>
+              <h2 id="case-title">只解决一个足够小、<br />足够真实的问题。</h2>
+            </div>
+            <p>
+              这不是通用室内设计器。面积、房型、业态和无障碍目标已经锁定，让 Agent 把注意力放在空间推理和可检查的 3D 输出上。
+            </p>
+          </div>
+
+          <div class="constraint-grid">
+            <article class="constraint-card constraint-card-accent">
+              <span class="card-number">A</span>
+              <div class="dimension-graphic" aria-hidden="true">
+                <span class="dimension-x">10 m</span>
+                <span class="dimension-y">5 m</span>
+                <div class="dimension-room"><div></div></div>
+              </div>
+              <h3>矩形商铺外壳</h3>
+              <p>默认 10m × 5m、净高 3.2m。若上传图纸有更可靠的比例，Agent 可以记录差异，但保持总面积 50㎡。</p>
+            </article>
+
+            <article class="constraint-card">
+              <span class="card-number">B</span>
+              <div class="icon-path" aria-hidden="true"><span></span><i>→</i></div>
+              <h3>一条连续无障碍路径</h3>
+              <p>入口、点单、取餐、至少一个座位和卫生间必须连通；主要通行净宽目标 ≥ 1.2m。</p>
+            </article>
+
+            <article class="constraint-card">
+              <span class="card-number">C</span>
+              <div class="icon-circle" aria-hidden="true"><span>Ø 1.5m</span></div>
+              <h3>可见、可检查的净空</h3>
+              <p>在入口、服务台前和卫生间用半透明圆标记轮椅回转区，不让“无障碍”停留在文字里。</p>
+            </article>
+
+            <article class="constraint-card">
+              <span class="card-number">D</span>
+              <div class="icon-scope" aria-hidden="true"><span>LOD</span><strong>01</strong></div>
+              <h3>概念级模型</h3>
+              <p>只做外壳、分区、动线、核心家具和材质方向；不输出施工图，也不虚构结构与机电条件。</p>
+            </article>
+          </div>
+          <p class="standards-note">
+            <span>!</span> 尺寸是本探索 Demo 的保守建模目标，不替代所在地法规、建筑师或无障碍顾问的复核。
+          </p>
+        </div>
+      </section>
+
+      <section class="builder-section section-shell" id="brief-builder" aria-labelledby="builder-title">
+        <div class="section-heading builder-heading">
+          <div>
+            <p class="section-index">02 / Prompt 生成器</p>
+            <h2 id="builder-title">三步，把模糊想法<br />变成可执行简报。</h2>
+          </div>
+          <p>所有输入仅在当前浏览器内处理；上传图片不会发送到服务器。把生成的 Prompt 和原图一起交给你的 Agent。</p>
+        </div>
+
+        <div class="builder-grid">
+          <div class="input-column">
+            <section class="form-step" aria-labelledby="step-one-title">
+              <div class="step-title">
+                <span>1</span>
+                <div><p>REFERENCE</p><h3 id="step-one-title">上传图片或平面图</h3></div>
+              </div>
+              <div class="upload-zone" id="uploadZone">
+                <input id="planUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+                <div class="upload-empty" id="uploadEmpty">
+                  <span class="upload-icon" aria-hidden="true">↥</span>
+                  <div>
+                    <strong>拖放图纸，或点击选择</strong>
+                    <small>PNG / JPG / WEBP / SVG · 最大 10MB</small>
+                  </div>
+                </div>
+                <div class="upload-preview" id="uploadPreview" hidden>
+                  <img id="previewImage" alt="用户上传的空间参考图" />
+                  <div><strong id="uploadName"></strong><small id="uploadMeta"></small></div>
+                  <button type="button" id="removeUpload" aria-label="移除上传图片">×</button>
+                </div>
+              </div>
+              <div class="sample-row">
+                <span>没有图纸？</span>
+                <button class="inline-button" id="useSample" type="button">使用内置 10 × 5m 样例图 →</button>
+              </div>
+            </section>
+
+            <section class="form-step" aria-labelledby="step-two-title">
+              <div class="step-title">
+                <span>2</span>
+                <div><p>INTENT</p><h3 id="step-two-title">描述咖啡馆体验</h3></div>
+              </div>
+              <label class="field-label" for="intentInput">一句话意图</label>
+              <textarea id="intentInput" rows="5">做一个温暖、易于独立使用的社区咖啡馆；轮椅用户从入口到点单、取餐、落座和卫生间全程无障碍。</textarea>
+              <div class="intent-presets" aria-label="意图标签">
+                <button type="button" class="intent-chip is-selected" data-intent="安静阅读">+ 安静阅读</button>
+                <button type="button" class="intent-chip is-selected" data-intent="邻里交流">+ 邻里交流</button>
+                <button type="button" class="intent-chip is-selected" data-intent="低位点单">+ 低位点单</button>
+                <button type="button" class="intent-chip" data-intent="可移动家具">+ 可移动家具</button>
+              </div>
+            </section>
+
+            <section class="form-step" aria-labelledby="step-three-title">
+              <div class="step-title">
+                <span>3</span>
+                <div><p>BUILD PATH</p><h3 id="step-three-title">选择 Agent 的建模方式</h3></div>
+              </div>
+              <div class="engine-options">
+                <label class="engine-card is-selected">
+                  <input type="radio" name="engine" value="threejs" checked />
+                  <span class="engine-icon">△</span>
+                  <span><strong>Three.js</strong><small>可部署、可交互的 Web 场景</small></span>
+                  <i>✓</i>
+                </label>
+                <label class="engine-card">
+                  <input type="radio" name="engine" value="blender" />
+                  <span class="engine-icon engine-icon-blender">◉</span>
+                  <span><strong>Blender MCP</strong><small>.blend + GLB + 概念渲染</small></span>
+                  <i>✓</i>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <aside class="prompt-panel" aria-labelledby="prompt-title">
+            <div class="prompt-panel-header">
+              <div>
+                <span class="status-dot"></span>
+                <p>READY FOR AGENT</p>
+              </div>
+              <span id="promptCount">0 chars</span>
+            </div>
+            <div class="prompt-title-row">
+              <span aria-hidden="true">⌁</span>
+              <div><p>GENERATED BRIEF</p><h3 id="prompt-title">复制这段 Prompt</h3></div>
+            </div>
+            <pre id="promptOutput" tabindex="0" aria-live="polite"></pre>
+            <div class="prompt-actions">
+              <button class="button button-primary" id="copyPrompt" type="button">复制 Prompt <span>⧉</span></button>
+              <button class="button button-outline" id="downloadBrief" type="button">下载 brief.json <span>↓</span></button>
+            </div>
+            <p class="prompt-tip"><span>提示</span> 上传图只存在于当前浏览器。请把原图与 Prompt 一起发给 Agent，或让能控制当前浏览器的 Agent 直接检查本页。</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="agent-section" id="agent-entry" aria-labelledby="agent-title">
+        <div class="section-shell agent-grid">
+          <div class="agent-copy">
+            <p class="section-index section-index-light">03 / AGENT 入口</p>
+            <h2 id="agent-title">如果你是 Agent，<br /><em>从这里开始。</em></h2>
+            <p>
+              页面不只是给人看的。固定场景、尺寸约束、建模顺序和完成条件都有机器可读版本；先读取，再查看图纸，不要从界面截图猜规则。
+            </p>
+            <div class="agent-links">
+              <a href="/llms.txt"><span>01</span><div><strong>/llms.txt</strong><small>导航与任务摘要</small></div><i>↗</i></a>
+              <a href="/AGENTS.md"><span>02</span><div><strong>/AGENTS.md</strong><small>仓库级执行说明</small></div><i>↗</i></a>
+              <a href="/agent/scene-contract.json"><span>03</span><div><strong>/agent/scene-contract.json</strong><small>尺寸与完成条件</small></div><i>↗</i></a>
+            </div>
+          </div>
+          <div class="agent-terminal" aria-label="Agent 探索顺序示例">
+            <div class="terminal-bar"><span></span><span></span><span></span><b>agent exploration path</b></div>
+            <pre><code><span class="code-comment"># 1. Discover the bounded task</span>
+GET <span class="code-accent">/llms.txt</span>
+
+<span class="code-comment"># 2. Read exact spatial constraints</span>
+GET <span class="code-accent">/agent/scene-contract.json</span>
+
+<span class="code-comment"># 3. Inspect the reference image</span>
+VIEW current page → <span class="code-value">#uploadPreview</span>
+
+<span class="code-comment"># 4. Build only the requested LOD</span>
+RUN workflow → <span class="code-value">threejs | blender_mcp</span>
+
+<span class="code-comment"># 5. Return evidence</span>
+REPORT scale, route, clearances, files</code></pre>
+            <div class="terminal-status"><span></span> Agent contract available</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer section-shell">
+      <div class="footer-brand"><span class="brand-mark">R/50</span><p>One room.<br />One bounded task.<br />Many capable agents.</p></div>
+      <div class="footer-meta">
+        <p>探索性 Demo · 非施工设计工具</p>
+        <p>Static-first · Netlify-ready · No upload backend</p>
+      </div>
+      <a href="#top" class="back-to-top">回到顶部 ↑</a>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="/app.js"></script>
+    <script type="module" src="/scene.js"></script>
+  </body>
+</html>

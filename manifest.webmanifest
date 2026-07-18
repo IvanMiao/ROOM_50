@@ -1,0 +1,17 @@
+{
+  "name": "ROOM/50 — Agent-ready spatial brief",
+  "short_name": "ROOM/50",
+  "description": "A bounded prompt builder for a 50 m² accessible café 3D modeling task.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f0e8",
+  "theme_color": "#d7ff3f",
+  "icons": [
+    {
+      "src": "/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
