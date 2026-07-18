@@ -16,11 +16,12 @@ const CASE_CONTRACT = Object.freeze({
   },
 });
 
+const i18n = window.ROOM50_I18N;
+
 const state = {
   engine: "threejs",
-  intent:
-    "做一个温暖、易于独立使用的社区咖啡馆；轮椅用户从入口到点单、取餐、落座和卫生间全程无障碍。",
-  tags: new Set(["安静阅读", "邻里交流", "低位点单"]),
+  intent: i18n.defaultIntent(),
+  tags: new Set(["quietReading", "communityConnection", "loweredOrdering"]),
   reference: {
     kind: "sample",
     name: "room50-sample-plan.svg",
@@ -98,7 +99,9 @@ function engineInstructions() {
 
 function generatePrompt() {
   const tags = [...state.tags];
-  const selectedTags = tags.length ? tags.join("、") : "无额外标签；只遵循主要意图";
+  const selectedTags = tags.length
+    ? tags.map((tag) => i18n.tagLabel(tag, "en")).join(", ")
+    : "No extra experience tags";
   const contract = CASE_CONTRACT;
 
   return `You are a spatial-modeling agent. Build one bounded concept model, not a generic design system.
@@ -165,7 +168,7 @@ function renderPrompt() {
 }
 
 function formatBytes(bytes) {
-  if (bytes === null || bytes === undefined) return "built-in sample";
+  if (bytes === null || bytes === undefined) return i18n.t("builtInSample");
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -208,7 +211,9 @@ function revokeObjectUrl() {
 function showReferencePreview(src, reference) {
   elements.previewImage.src = src;
   elements.uploadName.textContent = reference.name;
-  const dimensions = reference.width && reference.height ? `${reference.width} × ${reference.height}px` : "尺寸读取中";
+  const dimensions = reference.width && reference.height
+    ? `${reference.width} x ${reference.height}px`
+    : i18n.t("dimensionsLoading");
   elements.uploadMeta.textContent = `${dimensions} · ${formatBytes(reference.size)}`;
   elements.uploadEmpty.hidden = true;
   elements.uploadPreview.hidden = false;
@@ -227,16 +232,16 @@ function useSampleReference({ notify = true } = {}) {
   elements.planUpload.value = "";
   showReferencePreview("/assets/sample-plan.svg", state.reference);
   renderPrompt();
-  if (notify) showToast("已使用内置 10 × 5m 样例图");
+  if (notify) showToast(i18n.t("toastSample"));
 }
 
 function validateFile(file) {
   const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
   if (!allowed.includes(file.type)) {
-    throw new Error("请选择 PNG、JPG、WEBP 或 SVG 图片");
+    throw new Error(i18n.t("toastType"));
   }
   if (file.size > 10 * 1024 * 1024) {
-    throw new Error("图片不能超过 10MB");
+    throw new Error(i18n.t("toastSize"));
   }
 }
 
@@ -270,7 +275,7 @@ async function handleFile(file) {
   };
   showReferencePreview(state.objectUrl, state.reference);
   renderPrompt();
-  showToast("参考图已载入，仅保存在当前浏览器");
+  showToast(i18n.t("toastUpload"));
 }
 
 function downloadBrief() {
@@ -281,7 +286,7 @@ function downloadBrief() {
     demoStatus: "concept-only-not-for-construction",
     scenario: CASE_CONTRACT,
     userIntent: state.intent.trim(),
-    experienceTags: [...state.tags],
+    experienceTags: [...state.tags].map((tag) => i18n.tagLabel(tag, "en")),
     buildEngine: state.engine === "blender" ? "blender-mcp" : "threejs",
     reference: {
       ...state.reference,
@@ -299,7 +304,7 @@ function downloadBrief() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  showToast("brief.json 已下载");
+  showToast(i18n.t("toastDownload"));
 }
 
 elements.uploadZone.addEventListener("click", (event) => {
@@ -316,7 +321,7 @@ elements.uploadZone.addEventListener("keydown", (event) => {
 
 elements.uploadZone.setAttribute("tabindex", "0");
 elements.uploadZone.setAttribute("role", "button");
-elements.uploadZone.setAttribute("aria-label", "上传图片或平面图");
+elements.uploadZone.setAttribute("aria-label", i18n.t("uploadAria"));
 
 elements.planUpload.addEventListener("change", (event) => handleFile(event.target.files?.[0]));
 
@@ -368,11 +373,22 @@ document.querySelectorAll('input[name="engine"]').forEach((input) => {
   });
 });
 
-elements.copyPrompt.addEventListener("click", () => copyText(generatePrompt(), "Prompt 已复制，可以交给 Agent 了"));
+elements.copyPrompt.addEventListener("click", () => copyText(generatePrompt(), i18n.t("toastCopyPrompt")));
 elements.downloadBrief.addEventListener("click", downloadBrief);
 elements.copyPageUrl.addEventListener("click", () => {
-  const kickoff = `Explore ${pageUrl()} as an agent-friendly spatial brief. Start with /llms.txt and /agent/scene-contract.json, inspect the page and its sample plan, then tell me what you can build for this 50 m² accessible café. Do not modify files yet.`;
-  copyText(kickoff, "Agent 探索指令已复制");
+  const kickoff = `Explore ${pageUrl()} as an agent-friendly spatial brief. Start with /llms.txt and /agent/scene-contract.json, inspect the page and its sample plan, then tell me what you can build for this 50 m2 accessible cafe. Do not modify files yet.`;
+  copyText(kickoff, i18n.t("toastCopyPage"));
+});
+
+window.addEventListener("room50:localechange", ({ detail }) => {
+  const previousDefault = i18n.defaultIntent(detail.previousLocale);
+  if (state.intent.trim() === previousDefault) {
+    state.intent = i18n.defaultIntent(detail.locale);
+    elements.intentInput.value = state.intent;
+  }
+  elements.uploadZone.setAttribute("aria-label", i18n.t("uploadAria"));
+  showReferencePreview(state.objectUrl || "/assets/sample-plan.svg", state.reference);
+  renderPrompt();
 });
 
 window.addEventListener("beforeunload", revokeObjectUrl);
