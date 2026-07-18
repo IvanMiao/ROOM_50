@@ -9,17 +9,18 @@ The UI generates prompts for either:
 
 ## Run locally
 
-Serve the repository root with any static file server. No build step is required.
+Use Node 22 or newer and pnpm:
 
 ```powershell
-python -m http.server 4173
+pnpm install
+pnpm dev
 ```
 
-Then open `http://127.0.0.1:4173`.
+Open the local URL printed by Vite. Run `pnpm typecheck` for strict TypeScript checks and `pnpm build` to create the production `dist` directory.
 
 ## Deploy to Netlify
 
-Connect this repository in Netlify. `netlify.toml` already configures the repository root as the publish directory with no build command. You can also drag the folder into Netlify Drop.
+Connect this repository in Netlify. `netlify.toml` runs the Vite build and publishes `dist`; `.nvmrc` pins a compatible Node version. For Netlify Drop, run `pnpm build` locally and upload the generated `dist` directory.
 
 ## Agent entry points
 

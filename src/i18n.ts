@@ -1,16 +1,24 @@
-const DEFAULT_INTENTS = {
+interface UiDictionary {
+  title: string;
+  description: string;
+  dynamic: Record<DynamicMessageKey, string>;
+  attributes: Record<string, Record<string, string>>;
+  copy: Record<string, string>;
+}
+
+const DEFAULT_INTENTS: Record<Locale, string> = {
   en: "Create a warm, independently usable neighbourhood cafe where wheelchair users have a step-free journey from entrance to ordering, pick-up, seating, and the restroom.",
   zh: "做一个温暖、易于独立使用的社区咖啡馆；轮椅用户从入口到点单、取餐、落座和卫生间全程无障碍。",
 };
 
-const TAGS = {
+const TAGS: Record<IntentTag, Record<Locale, string>> = {
   quietReading: { en: "Quiet reading", zh: "安静阅读" },
   communityConnection: { en: "Community connection", zh: "邻里交流" },
   loweredOrdering: { en: "Lowered ordering", zh: "低位点单" },
   movableFurniture: { en: "Movable furniture", zh: "可移动家具" },
 };
 
-const UI = {
+const UI: Record<Locale, UiDictionary> = {
   en: {
     title: "ROOM/50 - Accessible Cafe Agent Modeling Brief",
     description:
@@ -227,40 +235,47 @@ const UI = {
   },
 };
 
-let locale = new URLSearchParams(window.location.search).get("lang") === "zh" ? "zh" : "en";
+let locale: Locale =
+  new URLSearchParams(window.location.search).get("lang") === "zh" ? "zh" : "en";
 
-function applyCopy(nextLocale) {
+function applyCopy(nextLocale: Locale): void {
   const dictionary = UI[nextLocale];
   document.documentElement.lang = nextLocale === "zh" ? "zh-CN" : "en";
   document.title = dictionary.title;
-  document.querySelector('meta[name="description"]')?.setAttribute("content", dictionary.description);
+  document
+    .querySelector('meta[name="description"]')
+    ?.setAttribute("content", dictionary.description);
 
   Object.entries(dictionary.copy).forEach(([selector, value]) => {
-    const element = document.querySelector(selector);
+    const element = document.querySelector<HTMLElement>(selector);
     if (element) element.innerHTML = value;
   });
 
   Object.entries(dictionary.attributes).forEach(([selector, attributes]) => {
-    const element = document.querySelector(selector);
+    const element = document.querySelector<HTMLElement>(selector);
     if (!element) return;
-    Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
+    Object.entries(attributes).forEach(([name, value]) =>
+      element.setAttribute(name, value),
+    );
   });
 
-  document.querySelectorAll("[data-lang]").forEach((button) => {
+  document.querySelectorAll<HTMLButtonElement>("[data-lang]").forEach((button) => {
     const active = button.dataset.lang === nextLocale;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
 }
 
-function setLocale(nextLocale, { initial = false } = {}) {
-  if (!UI[nextLocale]) return;
+function setLocale(
+  nextLocale: Locale,
+  { initial = false }: { initial?: boolean } = {},
+): void {
   const previousLocale = locale;
   locale = nextLocale;
   applyCopy(locale);
 
   if (initial) {
-    const intent = document.querySelector("#intentInput");
+    const intent = document.querySelector<HTMLTextAreaElement>("#intentInput");
     if (intent) intent.value = DEFAULT_INTENTS[locale];
   } else {
     const url = new URL(window.location.href);
@@ -268,7 +283,9 @@ function setLocale(nextLocale, { initial = false } = {}) {
     else url.searchParams.delete("lang");
     window.history.replaceState({}, "", url);
     window.dispatchEvent(
-      new CustomEvent("room50:localechange", { detail: { locale, previousLocale } }),
+      new CustomEvent<LocaleChangeDetail>("room50:localechange", {
+        detail: { locale, previousLocale },
+      }),
     );
   }
 }
@@ -277,19 +294,22 @@ window.ROOM50_I18N = {
   get locale() {
     return locale;
   },
-  defaultIntent(language = locale) {
+  defaultIntent(language: Locale = locale) {
     return DEFAULT_INTENTS[language];
   },
-  tagLabel(tag, language = locale) {
-    return TAGS[tag]?.[language] ?? tag;
+  tagLabel(tag: IntentTag, language: Locale = locale) {
+    return TAGS[tag][language] ?? tag;
   },
-  t(key, language = locale) {
-    return UI[language]?.dynamic[key] ?? key;
+  t(key: DynamicMessageKey, language: Locale = locale) {
+    return UI[language].dynamic[key] ?? key;
   },
 };
 
-document.querySelectorAll("[data-lang]").forEach((button) => {
-  button.addEventListener("click", () => setLocale(button.dataset.lang));
+document.querySelectorAll<HTMLButtonElement>("[data-lang]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextLocale = button.dataset.lang;
+    if (nextLocale === "en" || nextLocale === "zh") setLocale(nextLocale);
+  });
 });
 
 setLocale(locale, { initial: true });

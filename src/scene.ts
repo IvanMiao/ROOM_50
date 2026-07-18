@@ -1,19 +1,55 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-const container = document.querySelector("#sceneCanvas");
-const stage = document.querySelector("#sceneStage");
+type Vector3Tuple = [number, number, number];
+
+type MaterialPalette = Record<
+  | "floor"
+  | "wall"
+  | "wallEdge"
+  | "terracotta"
+  | "timber"
+  | "dark"
+  | "fabric"
+  | "plant"
+  | "ceramic"
+  | "glass"
+  | "access"
+  | "accessSoft",
+  THREE.Material
+>;
+
+type ViewName = "perspective" | "top" | "access";
+
+interface SceneView {
+  position: THREE.Vector3;
+  target: THREE.Vector3;
+  access: boolean;
+}
+
+interface CameraTween {
+  fromPosition: THREE.Vector3;
+  toPosition: THREE.Vector3;
+  fromTarget: THREE.Vector3;
+  toTarget: THREE.Vector3;
+  startedAt: number;
+  duration: number;
+}
+
+const container = document.querySelector<HTMLElement>("#sceneCanvas");
+const stage = document.querySelector<HTMLElement>("#sceneStage");
 
 if (container && stage) {
   try {
     initScene(container, stage);
   } catch (error) {
     console.warn("ROOM/50 Three.js preview could not start; keeping the plan fallback visible.", error);
-    stage.querySelector(".scene-fallback span").textContent = "3D 不可用 · 显示平面图";
+    stage.querySelector<HTMLElement>(".scene-fallback span")!.textContent =
+      "3D 不可用 · 显示平面图";
   }
 }
 
-function initScene(target, sceneStage) {
+function initScene(target: HTMLElement, sceneStage: HTMLElement): void {
   const scene = new THREE.Scene();
   scene.name = "room50_accessible_cafe_preview";
 
@@ -38,7 +74,7 @@ function initScene(target, sceneStage) {
   controls.maxDistance = 28;
   controls.maxPolarAngle = Math.PI / 2.03;
 
-  const palette = {
+  const palette: MaterialPalette = {
     floor: new THREE.MeshStandardMaterial({ color: 0xcbbfa7, roughness: 0.88, metalness: 0 }),
     wall: new THREE.MeshStandardMaterial({ color: 0xf2eee3, roughness: 0.92 }),
     wallEdge: new THREE.MeshStandardMaterial({ color: 0xded6c8, roughness: 0.9 }),
@@ -103,19 +139,33 @@ function initScene(target, sceneStage) {
 
   sceneStage.classList.add("is-3d-ready");
 
-  const views = {
-    perspective: { position: new THREE.Vector3(10.8, 8.6, 11.8), target: new THREE.Vector3(0, 0.65, 0), access: true },
-    top: { position: new THREE.Vector3(0.01, 16.5, 0.01), target: new THREE.Vector3(0, 0, 0), access: false },
-    access: { position: new THREE.Vector3(7.8, 11.5, 9.4), target: new THREE.Vector3(-0.5, 0, 0), access: true },
+  const views: Record<ViewName, SceneView> = {
+    perspective: {
+      position: new THREE.Vector3(10.8, 8.6, 11.8),
+      target: new THREE.Vector3(0, 0.65, 0),
+      access: true,
+    },
+    top: {
+      position: new THREE.Vector3(0.01, 16.5, 0.01),
+      target: new THREE.Vector3(0, 0, 0),
+      access: false,
+    },
+    access: {
+      position: new THREE.Vector3(7.8, 11.5, 9.4),
+      target: new THREE.Vector3(-0.5, 0, 0),
+      access: true,
+    },
   };
 
-  let activeTween = null;
+  let activeTween: CameraTween | null = null;
 
-  document.querySelectorAll("[data-view]").forEach((button) => {
+  document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll("[data-view]").forEach((item) => item.classList.remove("is-active"));
+      document
+        .querySelectorAll("[data-view]")
+        .forEach((item) => item.classList.remove("is-active"));
       button.classList.add("is-active");
-      const next = views[button.dataset.view];
+      const next = views[button.dataset.view as ViewName];
       accessibility.visible = next.access;
       activeTween = {
         fromPosition: camera.position.clone(),
@@ -140,9 +190,10 @@ function initScene(target, sceneStage) {
   resizeObserver.observe(target);
   resize();
 
-  const easeInOutCubic = (value) => (value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2);
+  const easeInOutCubic = (value: number): number =>
+    value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
 
-  function animate(time) {
+  function animate(time: number): void {
     if (activeTween) {
       const progress = Math.min((time - activeTween.startedAt) / activeTween.duration, 1);
       const eased = easeInOutCubic(progress);
@@ -157,7 +208,14 @@ function initScene(target, sceneStage) {
   renderer.setAnimationLoop(animate);
 }
 
-function addBox(parent, name, size, position, material, shadow = false) {
+function addBox(
+  parent: THREE.Object3D,
+  name: string,
+  size: Vector3Tuple,
+  position: Vector3Tuple,
+  material: THREE.Material,
+  shadow = false,
+): THREE.Mesh<THREE.BoxGeometry, THREE.Material> {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
   mesh.name = name;
   mesh.position.set(...position);
@@ -167,8 +225,8 @@ function addBox(parent, name, size, position, material, shadow = false) {
   return mesh;
 }
 
-function addFloorLines(parent) {
-  const points = [];
+function addFloorLines(parent: THREE.Object3D): void {
+  const points: number[] = [];
   for (let x = -5; x <= 5; x += 1) points.push(x, 0.012, -2.5, x, 0.012, 2.5);
   for (let z = -2.5; z <= 2.5; z += 1) points.push(-5, 0.012, z, 5, 0.012, z);
   const geometry = new THREE.BufferGeometry();
@@ -181,7 +239,7 @@ function addFloorLines(parent) {
   parent.add(lines);
 }
 
-function addEntrance(parent, palette) {
+function addEntrance(parent: THREE.Object3D, palette: MaterialPalette): void {
   const mat = addBox(parent, "step_free_entry_mat", [1.65, 0.025, 0.78], [-3.3, 0.018, 2.13], palette.dark);
   mat.receiveShadow = true;
 
@@ -199,7 +257,7 @@ function addEntrance(parent, palette) {
   glass.rotation.y = Math.PI / 2;
 }
 
-function addAccessibleWc(parent, palette) {
+function addAccessibleWc(parent: THREE.Object3D, palette: MaterialPalette): void {
   addBox(parent, "wc_partition_front", [2.3, 2.6, 0.1], [-3.8, 1.3, -0.25], palette.wallEdge, true);
   addBox(parent, "wc_partition_side", [0.1, 2.6, 2.15], [-2.65, 1.3, -1.32], palette.wallEdge, true);
 
@@ -215,7 +273,7 @@ function addAccessibleWc(parent, palette) {
   addBox(parent, "wc_grab_rail_hint", [0.72, 0.045, 0.045], [-4.35, 0.73, -2.34], palette.dark);
 }
 
-function addServiceCounter(parent, palette) {
+function addServiceCounter(parent: THREE.Object3D, palette: MaterialPalette): void {
   addBox(parent, "back_bar", [3.75, 0.93, 0.62], [2.68, 0.465, -2.05], palette.dark, true);
   addBox(parent, "main_service_counter", [2.45, 0.91, 0.72], [3.54, 0.455, -0.88], palette.terracotta, true);
   addBox(parent, "lowered_counter_0_76m", [1.08, 0.76, 0.72], [1.77, 0.38, -0.88], palette.timber, true);
@@ -237,8 +295,8 @@ function addServiceCounter(parent, palette) {
   }
 }
 
-function addFurniture(parent, palette) {
-  const tablePositions = [
+function addFurniture(parent: THREE.Object3D, palette: MaterialPalette): void {
+  const tablePositions: Array<[number, number]> = [
     [-0.55, 0.95],
     [1.95, 1.4],
     [3.8, 1.35],
@@ -272,17 +330,24 @@ function addFurniture(parent, palette) {
   addBox(parent, "wall_bench_back", [2.6, 0.62, 0.13], [3.55, 0.72, 2.31], palette.fabric, true);
 }
 
-function addChair(parent, name, x, z, rotation, palette) {
+function addChair(
+  parent: THREE.Object3D,
+  name: string,
+  x: number,
+  z: number,
+  rotation: number,
+  palette: MaterialPalette,
+): void {
   const chair = new THREE.Group();
   chair.name = name;
   addBox(chair, "seat", [0.42, 0.08, 0.42], [0, 0.45, 0], palette.fabric, true);
   addBox(chair, "back", [0.42, 0.5, 0.07], [0, 0.73, 0.2], palette.fabric, true);
-  [
+  ([
     [-0.16, -0.16],
     [0.16, -0.16],
     [-0.16, 0.16],
     [0.16, 0.16],
-  ].forEach(([legX, legZ], index) => {
+  ] as Array<[number, number]>).forEach(([legX, legZ], index) => {
     addBox(chair, `leg_${index + 1}`, [0.035, 0.43, 0.035], [legX, 0.215, legZ], palette.dark);
   });
   chair.position.set(x, 0, z);
@@ -290,11 +355,11 @@ function addChair(parent, name, x, z, rotation, palette) {
   parent.add(chair);
 }
 
-function addPlants(parent, palette) {
-  [
+function addPlants(parent: THREE.Object3D, palette: MaterialPalette): void {
+  ([
     [4.45, -1.85, 1.0],
     [-4.48, 1.85, 0.75],
-  ].forEach(([x, z, scale], index) => {
+  ] as Array<[number, number, number]>).forEach(([x, z, scale], index) => {
     const plant = new THREE.Group();
     plant.name = `plant_${index + 1}`;
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.17, 0.35, 18), palette.terracotta);
@@ -316,7 +381,7 @@ function addPlants(parent, palette) {
   });
 }
 
-function addAccessibilityEvidence(parent, palette) {
+function addAccessibilityEvidence(parent: THREE.Object3D, palette: MaterialPalette): void {
   const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(-3.3, 0.035, 2.45),
     new THREE.Vector3(-3.3, 0.035, 1.35),
@@ -330,11 +395,11 @@ function addAccessibilityEvidence(parent, palette) {
   route.name = "continuous_accessible_route_target_1_2m_clear";
   parent.add(route);
 
-  [
+  ([
     ["turning_zone_entry_1_5m", -3.3, 1.55],
     ["turning_zone_counter_1_5m", 0.72, -0.38],
     ["turning_zone_wc_1_5m", -3.75, -1.35],
-  ].forEach(([name, x, z]) => {
+  ] as Array<[string, number, number]>).forEach(([name, x, z]) => {
     const disc = new THREE.Mesh(new THREE.CircleGeometry(0.75, 48), palette.accessSoft);
     disc.name = name;
     disc.rotation.x = -Math.PI / 2;
@@ -355,7 +420,7 @@ function addAccessibilityEvidence(parent, palette) {
   parent.add(entryClear);
 }
 
-function addLighting(parent) {
+function addLighting(parent: THREE.Object3D): void {
   const ambient = new THREE.HemisphereLight(0xfff6de, 0x80776a, 2.2);
   ambient.name = "warm_hemisphere_light";
   parent.add(ambient);
