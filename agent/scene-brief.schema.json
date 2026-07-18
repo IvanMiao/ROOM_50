@@ -384,6 +384,7 @@
                   "$ref": "#/$defs/routeStop"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "stage": {
                       "const": "entrance"
@@ -398,6 +399,7 @@
                   "$ref": "#/$defs/routeStop"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "stage": {
                       "const": "ordering"
@@ -412,6 +414,7 @@
                   "$ref": "#/$defs/routeStop"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "stage": {
                       "const": "pick-up"
@@ -426,6 +429,7 @@
                   "$ref": "#/$defs/routeStop"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "stage": {
                       "const": "accessible-seat"
@@ -440,6 +444,7 @@
                   "$ref": "#/$defs/routeStop"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "stage": {
                       "const": "accessible-wc"
@@ -536,6 +541,7 @@
                   "$ref": "#/$defs/turningZone"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "at": {
                       "const": "entrance"
@@ -550,6 +556,7 @@
                   "$ref": "#/$defs/turningZone"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "at": {
                       "const": "service-counter"
@@ -564,6 +571,7 @@
                   "$ref": "#/$defs/turningZone"
                 },
                 {
+                  "type": "object",
                   "properties": {
                     "at": {
                       "const": "accessible-wc"

@@ -79,7 +79,10 @@ function renderStatus({ brief, report, checks, seatCapacity = capacityFromBrief(
   ui.runState.textContent = overall === "pass" ? "ALL CHECKS GREEN" : "FIX REQUIRED";
   ui.runState.closest(".run-state").className = `run-state is-${overall}`;
   ui.label.textContent = brief.label || "ROOM/50 scene";
-  ui.summary.textContent = `${report.summary.passed} pass / ${report.summary.failedErrors} error fail${report.summary.failedWarnings ? ` / ${report.summary.failedWarnings} warning fail` : ""}`;
+  const failures = [];
+  if (report.summary.failedErrors) failures.push(`${report.summary.failedErrors} error`);
+  if (report.summary.failedWarnings) failures.push(`${report.summary.failedWarnings} warning`);
+  ui.summary.textContent = `${report.summary.passed} pass / ${failures.length ? failures.join(" / ") : "0 fail"}`;
   ui.seatDelta.textContent = `${seatCapacity} capacity positions · ${overall === "pass" ? "clearance wins" : "one fix required"}`;
   ui.list.replaceChildren(...checks.map((check) => {
     const row = document.createElement("article");
