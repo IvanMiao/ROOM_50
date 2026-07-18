@@ -36,10 +36,10 @@
       "id": "lowered-counter",
       "semanticTag": "lowered-counter",
       "semanticGroup": "service",
-      "position": [-1.5, 0.5],
+      "position": [-1.5, 0.7],
       "rotation": 0,
       "bbox": { "w": 0.4, "d": 0.2, "h": 0.76 },
-      "collision": { "obstacle": false, "allowOverlapWith": [] }
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "pickup-counter",
@@ -57,7 +57,7 @@
       "position": [2, 1.5],
       "rotation": 0,
       "bbox": { "w": 0.9, "d": 0.7, "h": 0.74 },
-      "collision": { "obstacle": false, "allowOverlapWith": [] }
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "fixed-bench-edge",
@@ -98,7 +98,7 @@
   "accessibility": {
     "route": {
       "minimumClearWidthM": 1.2,
-      "centerline": [[-3, 1.5], [-1.5, 0], [0, 0], [1.5, 0], [3, 1.5]],
+      "centerline": [[-3, 1.5], [-1.5, 0], [0, 0], [1.5, 0], [4, 0]],
       "stops": [
         { "stage": "entrance", "pointIndex": 0, "target": { "collection": "doors", "id": "entrance-door" } },
         { "stage": "ordering", "pointIndex": 1, "target": { "collection": "objects", "id": "lowered-counter" } },
@@ -109,12 +109,12 @@
     },
     "turningZones": [
       { "id": "turn-entry", "at": "entrance", "center": [-3, 1.5], "diameterM": 1.5 },
-      { "id": "turn-counter", "at": "service-counter", "center": [-1.5, 0], "diameterM": 1.5 },
-      { "id": "turn-wc", "at": "accessible-wc", "center": [3, 1.5], "diameterM": 1.5 }
+      { "id": "turn-counter", "at": "service-counter", "center": [-1.5, -0.15], "diameterM": 1.5 },
+      { "id": "turn-wc", "at": "accessible-wc", "center": [4, 0], "diameterM": 1.5 }
     ],
     "doors": [
       { "id": "entrance-door", "at": "entrance", "position": [-3, 1.5], "rotation": 0, "clearWidthM": 0.9, "stepFree": true },
-      { "id": "wc-door", "at": "accessible-wc", "position": [3, 1.5], "rotation": 0, "clearWidthM": 0.9, "stepFree": true }
+      { "id": "wc-door", "at": "accessible-wc", "position": [4, 0], "rotation": 0, "clearWidthM": 0.9, "stepFree": true }
     ],
     "serviceCounter": {
       "counterObjectId": "main-counter",

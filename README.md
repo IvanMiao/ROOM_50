@@ -22,6 +22,14 @@ Open the local URL printed by Vite. Run `pnpm typecheck` for strict TypeScript c
 
 Append `/demo/` to the local URL printed by Vite for the deterministic fail/pass evidence viewer. For a production check, run `pnpm build`, then `pnpm preview`, and append `/demo/` to the preview URL. The viewer progressively loads a Blender-authored ArchViz GLB when available and falls back to the semantic procedural renderer if that asset is absent or unsupported.
 
+Validate a schema-compliant scene brief and write `validation-report.json` in the current directory:
+
+```sh
+npm run validate -- validator/fixtures/pass.json
+```
+
+The command exits `0` when every error-severity check passes, `1` for measured geometry failures, and `2` for invalid input.
+
 ## Deploy to Netlify
 
 Connect this repository in Netlify. `netlify.toml` runs the Vite build and publishes `dist`; `.nvmrc` pins a compatible Node version. For Netlify Drop, run `pnpm build` locally and upload the generated `dist` directory.

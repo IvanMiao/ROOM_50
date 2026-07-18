@@ -41,6 +41,7 @@ test("fixture briefs differ only by B3 position and removal of chair-14", async 
 test("fail fixture is valid input and isolates a 1.05 m route-width failure", async () => {
   const report = await fixedReport(failPath);
   const route = report.checks.find((check) => check.checkId === "routeWidth");
+  const turns = report.checks.find((check) => check.checkId === "turningZones");
   const seats = report.checks.find((check) => check.checkId === "seatCount");
 
   assert.deepEqual(report.summary, {
@@ -49,6 +50,8 @@ test("fail fixture is valid input and isolates a 1.05 m route-width failure", as
   assert.equal(route.status, "fail");
   assert.ok(Math.abs(route.measured.minimumClearWidthM - 1.05) < 1e-9);
   assert.deepEqual(route.measured.conflictingObjectIds, ["fixed-bench-edge", "table-b3"]);
+  assert.equal(route.evidenceGeometry.some((geometry) => geometry.type === "polyline"), true);
+  assert.equal(turns.evidenceGeometry.filter((geometry) => geometry.type === "circle").length, 3);
   assert.equal(seats.status, "pass");
   assert.equal(seats.measured.count, 15);
 });
