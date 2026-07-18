@@ -1,0 +1,18 @@
+{
+  "name": "ROOM/50 spatial brief",
+  "description": "Agent-friendly exploration and prompt surface for a 50 m² accessible café concept model.",
+  "version": "1.0.0",
+  "homepage": "/",
+  "llms": "/llms.txt",
+  "instructions": "/AGENTS.md",
+  "contract": "/agent/scene-contract.json",
+  "workflow": "/agent/workflow.md",
+  "reference": "/assets/sample-plan.svg",
+  "capabilities": ["explore", "extract-brief", "generate-prompt"],
+  "buildTargets": ["threejs", "blender-mcp"],
+  "interactionPolicy": {
+    "writesRequireExplicitUserRequest": true,
+    "browserUploadsPersist": false,
+    "scope": "50-m2-accessible-cafe-only"
+  }
+}

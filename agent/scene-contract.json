@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "contractVersion": "1.0.0",
+  "id": "room50-accessible-cafe-v1",
+  "status": "exploratory-concept-not-for-construction",
+  "canonical": true,
+  "locale": "metric",
+  "purpose": "Bounded 3D modeling brief for one accessible café concept",
+  "shell": {
+    "shape": "rectangle",
+    "grossAreaM2": 50,
+    "lengthM": 10,
+    "widthM": 5,
+    "clearHeightM": 3.2,
+    "worldUnits": "metres",
+    "scaleRule": "1 world or Blender unit equals 1 metre"
+  },
+  "use": {
+    "primary": "accessible-neighbourhood-cafe",
+    "targetSeats": {
+      "min": 14,
+      "max": 18,
+      "priority": "secondary-to-clearances"
+    },
+    "requiredZones": [
+      "step-free-entrance",
+      "ordering-and-payment",
+      "pick-up",
+      "compact-back-bar",
+      "mixed-seating",
+      "accessible-table-position",
+      "accessible-wc-concept-zone"
+    ]
+  },
+  "accessibilityTargets": {
+    "status": "demo-modeling-targets-not-code-certification",
+    "continuousRoute": {
+      "sequence": [
+        "entrance",
+        "ordering",
+        "pick-up",
+        "accessible-seat",
+        "accessible-wc"
+      ],
+      "minimumClearWidthM": 1.2,
+      "mustBeVisibleInEvidenceView": true
+    },
+    "turningZones": {
+      "diameterM": 1.5,
+      "requiredAt": ["entrance", "service-counter", "accessible-wc"],
+      "display": "translucent-toggleable-geometry"
+    },
+    "doors": {
+      "clearWidthTargetM": 0.9,
+      "stepFreeEntrance": true
+    },
+    "serviceCounter": {
+      "loweredSegmentRequired": true,
+      "maximumHeightM": 0.76
+    },
+    "accessibleTable": {
+      "wheelchairPositionRequired": true,
+      "kneeClearHeightTargetM": 0.7
+    }
+  },
+  "modelScope": {
+    "lod": "concept-01",
+    "include": [
+      "shell",
+      "large-partitions",
+      "major-service-elements",
+      "major-furniture",
+      "accessibility-route-evidence",
+      "simple-material-intent",
+      "review-lighting"
+    ],
+    "exclude": [
+      "construction-documents",
+      "structure",
+      "mep",
+      "fabrication-details",
+      "automatic-code-certification",
+      "photorealism-requirement",
+      "other-room-types"
+    ]
+  },
+  "semanticGroups": [
+    "shell",
+    "architecture",
+    "service",
+    "furniture",
+    "accessibility",
+    "lighting"
+  ],
+  "enginePaths": {
+    "threejs": {
+      "requiredViews": ["perspective", "top", "accessibility"],
+      "requiredFiles": ["index.html", "scene.js", "styles.css", "scene-brief.json", "README.md"],
+      "deploymentTarget": "netlify-static"
+    },
+    "blenderMcp": {
+      "requiresLiveMcpConnection": true,
+      "requiredCollections": [
+        "00_SHELL",
+        "01_ARCHITECTURE",
+        "02_SERVICE",
+        "03_FURNITURE",
+        "04_ACCESSIBILITY",
+        "05_LIGHTING"
+      ],
+      "requiredFiles": [
+        "room50-accessible-cafe.blend",
+        "room50-accessible-cafe.glb",
+        "axonometric-review.png",
+        "top-evidence.png"
+      ]
+    }
+  },
+  "definitionOfDone": [
+    "50 m2 boundary and true scale are explicit",
+    "objects or groups use semantic names",
+    "continuous accessible route is visible",
+    "three 1.5 m turning zones are visible",
+    "door counter and table dimensions are reported",
+    "accessibility overlays can be shown independently",
+    "reference conflicts are reported rather than silently resolved",
+    "files and opening or deployment instructions are reported",
+    "known gaps and next user decision are reported",
+    "result is labeled concept demo — not for construction"
+  ],
+  "referencePolicy": {
+    "browserUploadsAreStored": false,
+    "agentMustNotClaimInvisibleUploadAccess": true,
+    "fallbackReference": "/assets/sample-plan.svg"
+  }
+}

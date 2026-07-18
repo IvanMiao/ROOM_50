@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Agent-readable project map
+# See /llms.txt and /agent/scene-contract.json before interpreting the UI.

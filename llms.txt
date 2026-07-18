@@ -1,0 +1,34 @@
+# ROOM/50
+> Agent-readable handoff surface for one bounded task: create a concept 3D model of a 50 m² accessible neighbourhood café from a reference image and user intent.
+
+Canonical URL map:
+- / — human interface, reference upload, intent controls, generated prompt, and baseline Three.js preview
+- /AGENTS.md — repository-level execution guidance and definition of done
+- /agent.md — short alias to the canonical agent guidance
+- /agent/scene-contract.json — machine-readable dimensions, zones, constraints, and checks; prefer this over pixel inference
+- /agent/workflow.md — engine-specific Three.js and Blender MCP process
+- /assets/sample-plan.svg — built-in 10 m × 5 m schematic reference
+- /.well-known/agent.json — compact discovery manifest
+
+Fixed task boundary:
+- Use: accessible neighbourhood café
+- Area: 50 m²
+- Baseline shell: 10 m × 5 m × 3.2 m clear height
+- Deliverable level: concept model only
+- Required route: entrance → ordering → pick-up → accessible seat → accessible WC
+- Target clear route width: at least 1.2 m
+- Turning evidence: 1.5 m diameter zones at entrance, counter, and WC
+- Required engines: Three.js web scene OR Blender through an available MCP connection
+
+Important upload behavior:
+The site has no upload backend. A user-selected image remains inside that browser session. If you cannot inspect the current page state, ask the user to attach the same image with the generated prompt. Never claim to have read a browser-local upload that you cannot see.
+
+Recommended exploration sequence:
+1. Fetch /agent/scene-contract.json.
+2. Inspect the page and the visible reference.
+3. Separate observed facts from assumptions.
+4. Describe the proposed coordinate system, zoning, and object list.
+5. Wait for explicit build authorization if the user only asked you to explore.
+
+Safety and truthfulness:
+Dimensions are demo modeling targets, not proof of local-code compliance. Do not provide construction, structural, fire, plumbing, or MEP certification. Label results “concept demo — not for construction.”
