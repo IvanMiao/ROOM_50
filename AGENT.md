@@ -10,5 +10,6 @@ ROOM/50 is a Netlify-deployable **Build for Codex** web demo. The website itself
 - The generated prompt must send the agent to the website first and tell it which machine-readable resources to inspect.
 - Clearly distinguish observed information, user intent, fixed constraints, and assumptions.
 - Never imply that an agent can access a browser-local upload unless it can inspect that browser session. Otherwise, ask the user to attach the image.
+- For a built-in selection, fetch the exact plan from `/assets/plans/catalog.json` and make observed entrance, walls, openings, and fixed zones traceable in the model Top view.
 
 Keep the demo bounded to one case: a **50 m2 accessible cafe** modeled with Three.js or Blender MCP. Preserve the agent-facing experience whenever the site is changed.

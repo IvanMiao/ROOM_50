@@ -7,6 +7,8 @@ The UI generates prompts for either:
 - a deployable Three.js concept scene, or
 - a Blender MCP workflow producing `.blend`, `.glb`, and review renders.
 
+The reference step includes three public 10 m × 5 m plan variants. A selected plan's entrance, walls, openings, fixed zones, and obstructions must remain traceable in the generated model's Top view. Browser-local uploads remain available as a custom-reference path.
+
 ## Run locally
 
 Use Node 22 or newer and pnpm:
@@ -29,6 +31,7 @@ Connect this repository in Netlify. `netlify.toml` runs the Vite build and publi
 - `/agent/scene-contract.json` — canonical machine-readable constraints
 - `/agent/workflow.md` — engine-specific build sequence
 - `/.well-known/agent.json` — small discovery manifest
+- `/assets/plans/catalog.json` — built-in reference-plan variants
 
 ## Privacy and scope
 

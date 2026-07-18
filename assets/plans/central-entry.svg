@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-labelledby="title desc">
+  <title id="title">ROOM/50 central shopfront floor plan</title>
+  <desc id="desc">A ten by five metre café reference with a centred entrance, service zone on the rear left, and an accessible WC on the rear right.</desc>
+  <defs>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M50 0H0V50" fill="none" stroke="#77776f" stroke-width="1" opacity=".16"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="m0 0 10 5-10 5z" fill="#171916"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="500" fill="#f6f2e8"/>
+  <rect width="1000" height="500" fill="url(#grid)"/>
+
+  <g stroke="#171916" stroke-width="8" fill="none">
+    <path d="M24 24H976V476H570m-140 0H24V24"/>
+  </g>
+  <path d="M430 476a140 140 0 0 1 140-140" fill="none" stroke="#bd593e" stroke-width="4" stroke-dasharray="8 6"/>
+  <path d="M430 476h140" stroke="#171916" stroke-width="5"/>
+
+  <g font-family="ui-monospace,Consolas,monospace" fill="#171916">
+    <text x="36" y="54" font-size="17" font-weight="700">ROOM/50 · CENTRAL SHOPFRONT · 10 × 5m</text>
+    <text x="447" y="464" font-size="13">CENTRAL STEP-FREE ENTRY</text>
+  </g>
+
+  <g id="service">
+    <rect x="52" y="43" width="390" height="76" rx="7" fill="#252824"/>
+    <rect x="52" y="141" width="292" height="75" rx="7" fill="#bd593e" stroke="#171916" stroke-width="3"/>
+    <rect x="344" y="141" width="98" height="75" rx="7" fill="#d7ff3f" stroke="#171916" stroke-width="3"/>
+    <text x="184" y="89" fill="#fffdf7" font-family="ui-monospace,Consolas,monospace" font-size="15">BACK BAR</text>
+    <text x="91" y="188" fill="#fffdf7" font-family="ui-monospace,Consolas,monospace" font-size="14">ORDER + PICK-UP</text>
+    <text x="374" y="196" font-family="ui-monospace,Consolas,monospace" font-size="11" transform="rotate(-90 374 196)">760mm</text>
+  </g>
+
+  <g id="wc">
+    <path d="M742 24h234v214H742V24Z" fill="#dfdbd0" stroke="#171916" stroke-width="5"/>
+    <path d="M742 148v90h90" fill="none" stroke="#171916" stroke-width="5"/>
+    <path d="M832 238a90 90 0 0 0-90-90" fill="none" stroke="#bd593e" stroke-width="3" stroke-dasharray="7 6"/>
+    <ellipse cx="910" cy="91" rx="29" ry="38" fill="#fffdf7" stroke="#171916" stroke-width="3"/>
+    <path d="M865 145h79m-64-12v24m50-24v24" stroke="#171916" stroke-width="4"/>
+    <text x="780" y="207" font-family="ui-monospace,Consolas,monospace" font-size="15" font-weight="700">ACCESSIBLE WC</text>
+  </g>
+
+  <g id="tables" fill="#a57a59" stroke="#171916" stroke-width="3">
+    <circle cx="175" cy="335" r="38"/><circle cx="365" cy="337" r="38"/><circle cx="628" cy="337" r="38"/><circle cx="839" cy="345" r="38"/>
+  </g>
+  <g id="chairs" fill="#6f8992" stroke="#171916" stroke-width="2">
+    <rect x="158" y="277" width="34" height="27" rx="5"/><rect x="158" y="366" width="34" height="27" rx="5"/>
+    <rect x="348" y="279" width="34" height="27" rx="5"/><rect x="348" y="368" width="34" height="27" rx="5"/>
+    <rect x="611" y="279" width="34" height="27" rx="5"/><rect x="611" y="368" width="34" height="27" rx="5"/>
+    <rect x="822" y="287" width="34" height="27" rx="5"/><rect x="822" y="376" width="34" height="27" rx="5"/>
+  </g>
+
+  <g id="turning" fill="#d7ff3f" fill-opacity=".2" stroke="#799100" stroke-width="3" stroke-dasharray="9 7">
+    <circle cx="500" cy="393" r="68"/><circle cx="510" cy="209" r="68"/><circle cx="860" cy="126" r="68"/>
+  </g>
+  <g font-family="ui-monospace,Consolas,monospace" font-size="12" fill="#566700">
+    <text x="478" y="397">Ø1.5m</text><text x="488" y="213">Ø1.5m</text><text x="838" y="130">Ø1.5m</text>
+  </g>
+
+  <path d="M500 476C498 420 495 359 510 308s-2-77-3-94c34 29 79 57 130 67s113 8 158-8 56-61 63-87" fill="none" stroke="#799100" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 22" marker-end="url(#arrow)" opacity=".85"/>
+  <text x="535" y="451" font-family="ui-monospace,Consolas,monospace" font-size="13" fill="#566700">CONTINUOUS ROUTE ≥ 1.2m</text>
+
+  <g stroke="#171916" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)">
+    <path d="M25 488h950"/><path d="M988 25v450"/>
+  </g>
+  <g font-family="ui-monospace,Consolas,monospace" font-size="14" font-weight="700" fill="#171916">
+    <text x="481" y="493">10m</text><text x="993" y="257" transform="rotate(90 993 257)">5m</text>
+  </g>
+</svg>
