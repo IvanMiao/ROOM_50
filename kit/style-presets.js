@@ -56,22 +56,58 @@ function canvasTexture(THREE, { size = 256, paint, repeat = [1, 1] }) {
   return texture;
 }
 
-function makeWoodTexture(THREE, base) {
+function colorChannels(hex) {
+  return {
+    red: (hex >> 16) & 255,
+    green: (hex >> 8) & 255,
+    blue: hex & 255,
+  };
+}
+
+function shiftedColor(hex, shift) {
+  const { red, green, blue } = colorChannels(hex);
+  const channel = (value) => Math.max(0, Math.min(255, Math.round(value + shift)));
+  return `rgb(${channel(red)}, ${channel(green)}, ${channel(blue)})`;
+}
+
+function makeFloorTexture(THREE, base) {
   const random = seededNoise(50);
   return canvasTexture(THREE, {
-    repeat: [5, 2.5],
+    repeat: [4, 2],
     paint(context, size) {
       context.fillStyle = `#${base.toString(16).padStart(6, "0")}`;
       context.fillRect(0, 0, size, size);
-      for (let y = 0; y < size; y += 32) {
-        context.fillStyle = `rgba(35,20,10,${0.055 + random() * 0.04})`;
-        context.fillRect(0, y, size, 2);
-        for (let x = -20; x < size; x += 55 + Math.floor(random() * 35)) {
+      const boardHeight = 16;
+      for (let y = 0; y < size; y += boardHeight) {
+        const tone = (random() - 0.5) * 13;
+        context.fillStyle = shiftedColor(base, tone);
+        context.fillRect(0, y + 1, size, boardHeight - 1);
+
+        context.fillStyle = "rgba(47, 28, 15, 0.14)";
+        context.fillRect(0, y, size, 1);
+
+        const jointOffset = 59 + Math.floor(random() * 110);
+        for (let x = jointOffset; x < size; x += 115 + Math.floor(random() * 45)) {
+          context.fillStyle = "rgba(50, 30, 16, 0.1)";
+          context.fillRect(x, y + 1, 1, boardHeight - 1);
+        }
+
+        for (let strand = 0; strand < 5; strand += 1) {
+          const baseline = y + 5 + random() * (boardHeight - 10);
           context.beginPath();
-          context.moveTo(x, y + 5 + random() * 10);
-          context.bezierCurveTo(x + 28, y + 2, x + 58, y + 27, x + 96, y + 17);
-          context.strokeStyle = `rgba(255,239,211,${0.035 + random() * 0.045})`;
-          context.lineWidth = 1;
+          context.moveTo(-8, baseline);
+          context.bezierCurveTo(
+            size * 0.28,
+            baseline + (random() - 0.5) * 5,
+            size * 0.7,
+            baseline + (random() - 0.5) * 5,
+            size + 8,
+            baseline + (random() - 0.5) * 3,
+          );
+          context.strokeStyle = random() > 0.36
+            ? `rgba(255, 241, 217, ${0.018 + random() * 0.022})`
+            : `rgba(61, 35, 18, ${0.018 + random() * 0.018})`;
+          context.lineWidth = 0.65 + random() * 0.55;
           context.stroke();
         }
       }
@@ -79,22 +115,60 @@ function makeWoodTexture(THREE, base) {
   });
 }
 
-function makeLinenTexture(THREE, base) {
+function makeTimberTexture(THREE, base) {
+  const random = seededNoise(137);
   return canvasTexture(THREE, {
-    repeat: [3, 3],
+    repeat: [1.6, 1.6],
     paint(context, size) {
       context.fillStyle = `#${base.toString(16).padStart(6, "0")}`;
       context.fillRect(0, 0, size, size);
-      context.strokeStyle = "rgba(255,255,255,.09)";
-      context.lineWidth = 1;
-      for (let n = 0; n < size; n += 4) {
-        context.beginPath(); context.moveTo(n, 0); context.lineTo(n, size); context.stroke();
-        context.beginPath(); context.moveTo(0, n); context.lineTo(size, n); context.stroke();
+      for (let line = 0; line < 28; line += 1) {
+        const y = random() * size;
+        context.beginPath();
+        context.moveTo(-12, y);
+        context.bezierCurveTo(
+          size * 0.32,
+          y + (random() - 0.5) * 15,
+          size * 0.68,
+          y + (random() - 0.5) * 15,
+          size + 12,
+          y + (random() - 0.5) * 9,
+        );
+        context.strokeStyle = random() > 0.4
+          ? `rgba(255, 238, 207, ${0.018 + random() * 0.025})`
+          : `rgba(45, 25, 13, ${0.025 + random() * 0.028})`;
+        context.lineWidth = 0.7 + random() * 1.1;
+        context.stroke();
       }
-      context.strokeStyle = "rgba(20,25,22,.055)";
-      for (let n = 2; n < size; n += 8) {
-        context.beginPath(); context.moveTo(n, 0); context.lineTo(n, size); context.stroke();
-        context.beginPath(); context.moveTo(0, n); context.lineTo(size, n); context.stroke();
+      for (let pore = 0; pore < 180; pore += 1) {
+        context.fillStyle = `rgba(48, 27, 14, ${0.018 + random() * 0.02})`;
+        context.fillRect(random() * size, random() * size, 0.5 + random(), 0.5 + random() * 0.7);
+      }
+    },
+  });
+}
+
+function makeLinenTexture(THREE, base) {
+  const random = seededNoise(91);
+  return canvasTexture(THREE, {
+    repeat: [4, 4],
+    paint(context, size) {
+      context.fillStyle = `#${base.toString(16).padStart(6, "0")}`;
+      context.fillRect(0, 0, size, size);
+      context.lineWidth = 0.55;
+      for (let n = 0; n < size; n += 2) {
+        const drift = (random() - 0.5) * 0.7;
+        context.strokeStyle = `rgba(255, 255, 255, ${0.025 + random() * 0.018})`;
+        context.beginPath(); context.moveTo(n + drift, 0); context.lineTo(n - drift, size); context.stroke();
+        context.strokeStyle = `rgba(25, 30, 27, ${0.018 + random() * 0.015})`;
+        context.beginPath(); context.moveTo(0, n - drift); context.lineTo(size, n + drift); context.stroke();
+      }
+      for (let nub = 0; nub < 240; nub += 1) {
+        const light = random() > 0.48;
+        context.fillStyle = light
+          ? `rgba(255, 255, 255, ${0.018 + random() * 0.02})`
+          : `rgba(27, 30, 27, ${0.014 + random() * 0.018})`;
+        context.fillRect(random() * size, random() * size, 0.5 + random() * 0.8, 0.5 + random() * 0.8);
       }
     },
   });
@@ -103,14 +177,31 @@ function makeLinenTexture(THREE, base) {
 function makeTerracottaTexture(THREE, base) {
   const random = seededNoise(76);
   return canvasTexture(THREE, {
-    repeat: [2, 2],
+    repeat: [2.5, 2.5],
     paint(context, size) {
       context.fillStyle = `#${base.toString(16).padStart(6, "0")}`;
       context.fillRect(0, 0, size, size);
-      for (let index = 0; index < 900; index += 1) {
-        const alpha = 0.025 + random() * 0.045;
-        context.fillStyle = random() > 0.5 ? `rgba(255,230,200,${alpha})` : `rgba(50,20,10,${alpha})`;
-        const radius = 0.4 + random() * 1.4;
+      for (let bloom = 0; bloom < 36; bloom += 1) {
+        const radius = 4 + random() * 11;
+        const x = random() * size;
+        const y = random() * size;
+        const gradient = context.createRadialGradient(
+          x,
+          y,
+          0,
+          x,
+          y,
+          radius,
+        );
+        gradient.addColorStop(0, random() > 0.5 ? "rgba(255, 229, 199, 0.018)" : "rgba(63, 31, 20, 0.014)");
+        gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, size, size);
+      }
+      for (let index = 0; index < 380; index += 1) {
+        const alpha = 0.018 + random() * 0.028;
+        context.fillStyle = random() > 0.54 ? `rgba(255, 232, 205, ${alpha})` : `rgba(58, 29, 19, ${alpha})`;
+        const radius = 0.25 + random() * 0.75;
         context.beginPath();
         context.arc(random() * size, random() * size, radius, 0, Math.PI * 2);
         context.fill();
@@ -126,18 +217,19 @@ export function listStylePresets() {
 export function createStylePreset(THREE, presetId = "hearth") {
   const preset = PRESETS[presetId] || PRESETS.hearth;
   const { colors } = preset;
-  const wood = makeWoodTexture(THREE, colors.floor);
+  const floor = makeFloorTexture(THREE, colors.floor);
+  const timber = makeTimberTexture(THREE, colors.timber);
   const linen = makeLinenTexture(THREE, colors.textile);
   const clay = makeTerracottaTexture(THREE, colors.textileAlt);
   const materials = {
-    floor: new THREE.MeshStandardMaterial({ color: 0xffffff, map: wood, roughness: 0.84, metalness: 0 }),
+    floor: new THREE.MeshStandardMaterial({ color: 0xffffff, map: floor, roughness: 0.82, metalness: 0 }),
     wall: new THREE.MeshStandardMaterial({ color: colors.wall, roughness: 0.92 }),
     trim: new THREE.MeshStandardMaterial({ color: colors.trim, roughness: 0.72 }),
-    timber: new THREE.MeshStandardMaterial({ color: colors.timber, roughness: 0.68 }),
-    linen: new THREE.MeshStandardMaterial({ color: 0xffffff, map: linen, roughness: 0.96 }),
-    terracotta: new THREE.MeshStandardMaterial({ color: 0xffffff, map: clay, roughness: 0.9 }),
-    ceramic: new THREE.MeshStandardMaterial({ color: colors.ceramic, roughness: 0.42 }),
-    metal: new THREE.MeshStandardMaterial({ color: colors.metal, roughness: 0.58, metalness: 0.16 }),
+    timber: new THREE.MeshStandardMaterial({ color: 0xffffff, map: timber, roughness: 0.72, metalness: 0 }),
+    linen: new THREE.MeshStandardMaterial({ color: 0xffffff, map: linen, roughness: 0.94, metalness: 0 }),
+    terracotta: new THREE.MeshStandardMaterial({ color: 0xffffff, map: clay, roughness: 0.95, metalness: 0 }),
+    ceramic: new THREE.MeshStandardMaterial({ color: colors.ceramic, roughness: 0.46, metalness: 0 }),
+    metal: new THREE.MeshStandardMaterial({ color: colors.metal, roughness: 0.6, metalness: 0.2 }),
     plant: new THREE.MeshStandardMaterial({ color: colors.foliage, roughness: 0.9 }),
     glass: new THREE.MeshPhysicalMaterial({ color: 0xc8dcdd, roughness: 0.18, transmission: 0.35, transparent: true, opacity: 0.7 }),
   };
