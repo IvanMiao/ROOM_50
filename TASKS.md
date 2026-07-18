@@ -20,7 +20,7 @@
 - [ ] **网站结果区**：页面加一块 validation 面板（读 report JSON 渲染红绿清单），部署 Netlify
 - [ ] **发现层**：llms.txt / .well-known/agent.json 补上 validator 与 report 的入口；AGENT.md 与 AGENTS.md 合并留一份
 
-## 🟩 Gogo — Validator 核心（只动 `validator/*`，新目录）
+## 🟩 Chloe — Validator 核心（只动 `validator/*`，新目录）
 
 - [ ] **P0 几何检查器**（读 scene-brief.json，纯计算无渲染）：
   - `routeWidth`：entrance→order→pickup→accessible-seat→WC 连续路线，对家具 bbox 做通道扫描，最窄处 ≥1.2m，输出瓶颈坐标
@@ -32,7 +32,7 @@
 - [ ] **fixtures**：`validator/fixtures/` 放两份手写 brief——`fail.json`（B3 桌把路线挤到 1.05m）和 `pass.json`，单测跑通。这两份也是 demo 剧本的道具
 - [ ] （有余力）violationGeometry 里给 overlay 用的线段/圆数据
 
-## 🟨 Chloe — 好看层 & Demo（只动 `kit/*` / `demo/*`，新目录）
+## 🟨 Gogo — 好看层 & Demo（只动 `kit/*` / `demo/*`，新目录）
 
 - [ ] **P2 style kit**：`kit/style-presets.js` — 材质（木地板/亚麻/陶土布艺程序纹理）、灯光 rig（暖阳 + 补光 + 夜晚模式）、两套配色 preset；参考 interior-demo.html 的配方
 - [ ] **`kit/starter-scene.js`**：读 scene-brief.json 自动摆家具 + 套 style preset 的渲染器——codex 只需产 brief，好看由 kit 保证下限；含 Perspective/Top/Accessibility 三视图切换
