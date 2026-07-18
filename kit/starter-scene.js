@@ -1,8 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { createArchvizLayer } from "./archviz-layer.js";
 import { createLightingRig, createStylePreset, disposeStylePreset, setLightingMode } from "./style-presets.js";
 
 const GROUPS = ["shell", "architecture", "service", "furniture", "accessibility", "lighting"];
+const PROCEDURAL_GROUPS = ["shell", "architecture", "service", "furniture"];
+const VISUAL_GROUP = "visual";
+const CANONICAL_GROUPS = new Set(GROUPS);
 const PASS = 0x77df8b;
 const FAIL = 0xff4d45;
 const WARNING = 0xffb347;
@@ -10,6 +15,49 @@ const WARNING = 0xffb347;
 function number(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isPoint2(value) {
+  return Array.isArray(value) && value.length === 2 && value.every(isFiniteNumber);
+}
+
+function isPositiveBbox(value) {
+  return value
+    && isFiniteNumber(value.w) && value.w > 0
+    && isFiniteNumber(value.d) && value.d > 0
+    && isFiniteNumber(value.h) && value.h > 0;
+}
+
+function distanceToPoint([ax, az], [bx, bz]) {
+  return Math.hypot(ax - bx, az - bz);
+}
+
+function distanceToObjectFootprint(point, object) {
+  const cosine = Math.cos(-object.rotation);
+  const sine = Math.sin(-object.rotation);
+  const dx = point[0] - object.x;
+  const dz = point[1] - object.z;
+  const localX = dx * cosine - dz * sine;
+  const localZ = dx * sine + dz * cosine;
+  const outsideX = Math.max(Math.abs(localX) - object.w / 2, 0);
+  const outsideZ = Math.max(Math.abs(localZ) - object.d / 2, 0);
+  return Math.hypot(outsideX, outsideZ);
+}
+
+function distanceToDoorOpening(point, door) {
+  const halfWidth = door.clearWidthM / 2;
+  const direction = [Math.cos(door.rotation), Math.sin(door.rotation)];
+  const from = [door.position[0] - direction[0] * halfWidth, door.position[1] - direction[1] * halfWidth];
+  const to = [door.position[0] + direction[0] * halfWidth, door.position[1] + direction[1] * halfWidth];
+  const segment = [to[0] - from[0], to[1] - from[1]];
+  const lengthSquared = segment[0] ** 2 + segment[1] ** 2;
+  const projection = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+    ((point[0] - from[0]) * segment[0] + (point[1] - from[1]) * segment[1]) / lengthSquared));
+  return distanceToPoint(point, [from[0] + segment[0] * projection, from[1] + segment[1] * projection]);
 }
 
 function normalizeShell(brief = {}) {
@@ -30,6 +78,8 @@ function normalizeObject(item, index) {
   const w = Math.max(0.02, number(Array.isArray(bbox) ? bbox[0] : bbox.w ?? bbox.width, 0.6));
   const d = Math.max(0.02, number(Array.isArray(bbox) ? bbox[1] : bbox.d ?? bbox.depth, 0.6));
   const h = Math.max(0.02, number(Array.isArray(bbox) ? bbox[2] : bbox.h ?? bbox.height, 0.75));
+  const elevationM = Math.max(0, number(item.elevationM ?? item.elevation, 0));
+  const declaredGroup = String(item.semanticGroup || "").toLowerCase();
   return {
     ...item,
     id: item.id || `object-${index + 1}`,
@@ -39,19 +89,201 @@ function normalizeObject(item, index) {
     w,
     d,
     h,
-    y: number(item.elevation ?? item.positionY, h / 2),
+    elevationM,
+    y: elevationM + h / 2,
+    semanticGroup: CANONICAL_GROUPS.has(declaredGroup) ? declaredGroup : legacySemanticGroup(semanticTag),
     rotation: number(item.rotation ?? item.rotationY, 0),
   };
 }
 
-function normalizeBrief(brief = {}) {
+export function normalizeSceneBrief(brief = {}) {
   const objects = brief.objects || brief.scene?.objects || brief.items || [];
   const seats = brief.seats || brief.scene?.seats || [];
-  const seatObjects = seats.map((seat, index) => ({ semanticTag: "seat", id: seat.id || `seat-${index + 1}`, bbox: { w: 0.46, d: 0.5, h: 0.82 }, ...seat }));
-  return { shell: normalizeShell(brief), objects: [...objects, ...seatObjects].map(normalizeObject), raw: brief };
+  const canonical = brief.schemaVersion === "1.0.0";
+  if (!Array.isArray(objects) || !Array.isArray(seats)) {
+    throw new Error("Scene brief objects and seats must be arrays");
+  }
+  if (canonical) {
+    const coordinateSystem = brief.coordinateSystem || {};
+    const shell = brief.shell || {};
+    const canonicalHeader = brief.contractId === "room50-accessible-cafe-v1"
+      && brief.status === "concept-demo-not-for-construction"
+      && brief.units === "metres"
+      && coordinateSystem.horizontalPlane === "xz"
+      && coordinateSystem.verticalAxis === "y-up"
+      && coordinateSystem.origin === "shell-centre-at-finished-floor"
+      && coordinateSystem.rotationUnit === "radians"
+      && coordinateSystem.rotationAxis === "y"
+      && coordinateSystem.rotationRule === "right-hand-rule";
+    if (!canonicalHeader) throw new Error("Canonical scene brief header or coordinate system is invalid");
+    if (shell.lengthM !== 10 || shell.widthM !== 5 || shell.clearHeightM !== 3.2 || shell.grossAreaM2 !== 50) {
+      throw new Error("Canonical scene brief must use the fixed 10 × 5 × 3.2 m shell");
+    }
+    if (![brief.observations, brief.userIntent, brief.assumptions].every(Array.isArray)) {
+      throw new Error("Canonical observations, userIntent, and assumptions must be arrays");
+    }
+    if (Object.hasOwn(brief, "seatCount")) throw new Error("Canonical capacity must not use a seatCount field");
+    const rawObjectIds = objects.map((item) => item.id);
+    if (rawObjectIds.some((id) => !id) || new Set(rawObjectIds).size !== rawObjectIds.length) {
+      throw new Error("Canonical scene brief object IDs must be present and unique");
+    }
+    const invalidObject = objects.find((item) =>
+      typeof item.semanticTag !== "string"
+      || !isPoint2(item.position)
+      || !isFiniteNumber(item.rotation)
+      || !isPositiveBbox(item.bbox)
+      || !item.collision
+      || typeof item.collision.obstacle !== "boolean"
+      || !Array.isArray(item.collision.allowOverlapWith)
+      || new Set(item.collision.allowOverlapWith).size !== item.collision.allowOverlapWith.length
+      || (item.elevationM !== undefined && (!isFiniteNumber(item.elevationM) || item.elevationM < 0)));
+    if (invalidObject) throw new Error(`Canonical object ${invalidObject.id || "(unknown)"} has invalid geometry`);
+    const missingGroup = objects.find((item) => !CANONICAL_GROUPS.has(String(item.semanticGroup || "").toLowerCase()));
+    if (missingGroup) throw new Error(`Canonical object ${missingGroup.id || "(unknown)"} requires a valid semanticGroup`);
+    const seatKinds = new Set(["chair", "stool", "bench-position", "wheelchair-position"]);
+    const invalidSeat = seats.find((seat) =>
+      !seatKinds.has(seat.kind)
+      || !isPoint2(seat.position)
+      || typeof seat.countsTowardCapacity !== "boolean"
+      || typeof seat.accessible !== "boolean");
+    if (invalidSeat) throw new Error(`Canonical seat ${invalidSeat.id || "(unknown)"} is invalid`);
+  }
+  const normalizedObjects = objects.map(normalizeObject);
+  const objectIdList = normalizedObjects.map((item) => item.id);
+  const seatIdList = seats.map((seat) => seat.id);
+  if (new Set(objectIdList).size !== objectIdList.length) throw new Error("Scene brief object IDs must be unique");
+  if (canonical && (seatIdList.some((id) => !id) || new Set(seatIdList).size !== seatIdList.length)) {
+    throw new Error("Canonical scene brief seat IDs must be present and unique");
+  }
+  const objectIds = new Set(normalizedObjects.map((item) => item.id));
+  const objectsById = new Map(normalizedObjects.map((item) => [item.id, item]));
+  const seatIds = new Set(seatIdList);
+  if (canonical && seatIdList.some((id) => objectIds.has(id))) {
+    throw new Error("Canonical object and seat IDs must be globally unique");
+  }
+  const danglingSeat = seats.find((seat) => seat.objectId && !objectIds.has(seat.objectId));
+  if (danglingSeat) throw new Error(`Seat ${danglingSeat.id || "(unknown)"} references missing object ${danglingSeat.objectId}`);
+  if (canonical) {
+    const expectedSeatTags = { chair: "chair", stool: "stool", "bench-position": "bench-seat" };
+    const mismatchedSeat = seats.find((seat) =>
+      seat.objectId
+      && expectedSeatTags[seat.kind]
+      && objectsById.get(seat.objectId)?.semanticTag !== expectedSeatTags[seat.kind]);
+    if (mismatchedSeat) throw new Error(`Seat ${mismatchedSeat.id} references incompatible solid geometry`);
+    const accessibility = brief.accessibility;
+    const centerline = accessibility?.route?.centerline;
+    const stops = accessibility?.route?.stops;
+    if (!Array.isArray(centerline) || !Array.isArray(stops)) throw new Error("Canonical accessibility route is incomplete");
+    if (accessibility.route.minimumClearWidthM !== 1.2 || !centerline.every(isPoint2)) {
+      throw new Error("Canonical accessibility route coordinates or target width are invalid");
+    }
+    const expectedStages = ["entrance", "ordering", "pick-up", "accessible-seat", "accessible-wc"];
+    const orderedStops = stops.length === expectedStages.length && stops.every((stop, index) =>
+      stop.stage === expectedStages[index]
+      && Number.isInteger(stop.pointIndex)
+      && stop.pointIndex >= 0
+      && stop.pointIndex < centerline.length
+      && (index === 0 || stop.pointIndex > stops[index - 1].pointIndex));
+    if (!orderedStops) throw new Error("Accessibility route stops must be ordered and reference centerline points");
+    if (accessibility?.turningZones?.length !== 3 || accessibility?.doors?.length !== 2) {
+      throw new Error("Canonical accessibility data requires three turning zones and two doors");
+    }
+    const declaredIds = [
+      ...objectIdList,
+      ...seatIdList,
+      ...accessibility.turningZones.map((zone) => zone.id),
+      ...accessibility.doors.map((door) => door.id),
+    ];
+    if (declaredIds.some((id) => !id) || new Set(declaredIds).size !== declaredIds.length) {
+      throw new Error("Canonical object, seat, turning-zone, and door IDs must be globally unique");
+    }
+    const invalidOverlap = objects.find((item) => item.collision.allowOverlapWith.some((id) => id === item.id || !objectIds.has(id)));
+    if (invalidOverlap) throw new Error(`Object ${invalidOverlap.id} has an invalid overlap exemption`);
+    if (accessibility.turningZones.some((zone) => !isPoint2(zone.center) || !isFiniteNumber(zone.diameterM) || zone.diameterM <= 0)) {
+      throw new Error("Canonical turning-zone geometry is invalid");
+    }
+    if (accessibility.doors.some((door) =>
+      !isPoint2(door.position)
+      || !isFiniteNumber(door.rotation)
+      || !isFiniteNumber(door.clearWidthM)
+      || door.clearWidthM <= 0
+      || typeof door.stepFree !== "boolean")) {
+      throw new Error("Canonical door geometry is invalid");
+    }
+    const turningStages = accessibility.turningZones.map((zone) => zone.at);
+    if (turningStages.join("|") !== "entrance|service-counter|accessible-wc") {
+      throw new Error("Canonical turning zones must follow entrance, service-counter, accessible-wc order");
+    }
+    const doorStages = new Set(accessibility.doors.map((door) => door.at));
+    if (doorStages.size !== 2 || !doorStages.has("entrance") || !doorStages.has("accessible-wc")) {
+      throw new Error("Canonical doors must cover the entrance and accessible WC");
+    }
+    const collections = {
+      objects: new Map(normalizedObjects.map((item) => [item.id, item])),
+      seats: new Map(seats.map((seat) => [seat.id, seat])),
+      doors: new Map(accessibility.doors.map((door) => [door.id, door])),
+    };
+    const expectedTargetCollections = ["doors", "objects", "objects", "seats", "doors"];
+    stops.forEach((stop, index) => {
+      const target = stop.target;
+      const expectedCollection = expectedTargetCollections[index];
+      if (!target || target.collection !== expectedCollection || !collections[expectedCollection].has(target.id)) {
+        throw new Error(`Route stop ${stop.stage} has an invalid target`);
+      }
+      const routePoint = centerline[stop.pointIndex];
+      const targetValue = collections[expectedCollection].get(target.id);
+      const distance = expectedCollection === "objects"
+        ? distanceToObjectFootprint(routePoint, targetValue)
+        : expectedCollection === "doors"
+          ? distanceToDoorOpening(routePoint, targetValue)
+          : distanceToPoint(routePoint, targetValue.position);
+      if (distance > 0.6 + Number.EPSILON) {
+        throw new Error(`Route stop ${stop.stage} is more than 0.6 m from its target`);
+      }
+    });
+    const objectReferences = [
+      accessibility?.serviceCounter?.counterObjectId,
+      accessibility?.serviceCounter?.loweredSegmentObjectId,
+      accessibility?.accessibleTable?.tableObjectId,
+      ...accessibility.doors.map((door) => door.objectId).filter(Boolean),
+    ];
+    if (objectReferences.some((id) => !objectIds.has(id))) throw new Error("Accessibility object reference is missing");
+    const counter = objectsById.get(accessibility.serviceCounter.counterObjectId);
+    const loweredCounter = objectsById.get(accessibility.serviceCounter.loweredSegmentObjectId);
+    const accessibleTable = objectsById.get(accessibility.accessibleTable.tableObjectId);
+    if (counter?.semanticTag !== "service-counter"
+      || loweredCounter?.semanticTag !== "lowered-counter"
+      || accessibleTable?.semanticTag !== "accessible-table") {
+      throw new Error("Accessibility references point to incompatible semantic objects");
+    }
+    const wheelchairSeat = seats.find((seat) => seat.id === accessibility?.accessibleTable?.wheelchairSeatId);
+    if (!wheelchairSeat
+      || !seatIds.has(wheelchairSeat.id)
+      || wheelchairSeat.kind !== "wheelchair-position"
+      || wheelchairSeat.accessible !== true
+      || wheelchairSeat.countsTowardCapacity !== true
+      || wheelchairSeat.objectId !== undefined) {
+      throw new Error("Accessible table must reference an empty accessible wheelchair position");
+    }
+    if (!accessibility?.accessibleTable?.kneeClearanceVolume) {
+      throw new Error("Accessible table knee-clearance volume is missing");
+    }
+    const kneeVolume = accessibility.accessibleTable.kneeClearanceVolume;
+    if (!isPoint2(kneeVolume.position) || !isFiniteNumber(kneeVolume.rotation) || !isPositiveBbox(kneeVolume.bbox)) {
+      throw new Error("Accessible table knee-clearance volume is invalid");
+    }
+  }
+  return {
+    shell: normalizeShell(brief),
+    objects: normalizedObjects,
+    seats,
+    seatCapacity: seats.filter((seat) => seat.countsTowardCapacity === true).length,
+    accessibility: brief.accessibility || null,
+    raw: brief,
+  };
 }
 
-function semanticGroup(tag) {
+function legacySemanticGroup(tag) {
   if (/wall|door|partition|window|wc|toilet|architecture/.test(tag)) return "architecture";
   if (/counter|bar|service|espresso|pickup|order/.test(tag)) return "service";
   if (/route|turn|clearance|access/.test(tag)) return "accessibility";
@@ -167,89 +399,175 @@ function buildShell(group, shell, style) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
   const grid = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x39352f, transparent: true, opacity: 0.15 }));
+  grid.material.userData.room50Owned = true;
   grid.name = "one_metre_grid";
   group.add(grid);
 }
 
-function reportChecks(report) {
-  const source = report?.checks || report?.results || report?.validationResults || report?.report?.checks || [];
-  if (Array.isArray(source)) return source;
-  return Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }));
+const EXPECTED_CHECK_IDS = ["boundary", "routeWidth", "turningZones", "counterHeight", "kneeClearance", "seatCount"];
+const GEOMETRY_TYPES = new Set(["point", "segment", "polyline", "polygon", "circle"]);
+
+function validateGeometry(shape, geometryIds) {
+  if (!shape || typeof shape !== "object" || typeof shape.id !== "string" || !shape.id || geometryIds.has(shape.id)) {
+    throw new Error("Validation report geometry IDs must be present and unique");
+  }
+  geometryIds.add(shape.id);
+  if (!GEOMETRY_TYPES.has(shape.type)) throw new Error(`Unsupported evidence geometry type: ${shape.type || "(missing)"}`);
+  if (shape.color !== undefined || shape.colour !== undefined || shape.style !== undefined) {
+    throw new Error("Validation report geometry must not contain presentation styling");
+  }
+  if (shape.type === "point" && !isPoint2(shape.point)) throw new Error(`Geometry ${shape.id} has an invalid point`);
+  if (shape.type === "segment" && (!isPoint2(shape.from) || !isPoint2(shape.to) || distanceToPoint(shape.from, shape.to) === 0)) {
+    throw new Error(`Geometry ${shape.id} has an invalid segment`);
+  }
+  if ((shape.type === "polyline" || shape.type === "polygon")) {
+    const minimum = shape.type === "polygon" ? 3 : 2;
+    if (!Array.isArray(shape.points) || shape.points.length < minimum || !shape.points.every(isPoint2)) {
+      throw new Error(`Geometry ${shape.id} has invalid points`);
+    }
+    if (shape.type === "polygon" && distanceToPoint(shape.points[0], shape.points.at(-1)) === 0) {
+      throw new Error(`Geometry ${shape.id} repeats its first polygon point`);
+    }
+  }
+  if (shape.type === "circle" && (!isPoint2(shape.center) || !isFiniteNumber(shape.radiusM) || shape.radiusM <= 0)) {
+    throw new Error(`Geometry ${shape.id} has an invalid circle`);
+  }
 }
 
-function geometryItems(report) {
-  const checks = reportChecks(report);
-  const items = [];
+export function validateValidationReport(report, brief) {
+  const majorVersion = /^(\d+)\./.exec(report?.reportVersion)?.[1];
+  if (majorVersion !== "1") throw new Error("Validation report uses an unsupported major version");
+  if (typeof report.validatorVersion !== "string" || !report.validatorVersion || Number.isNaN(Date.parse(report.generatedAt))) {
+    throw new Error("Validation report metadata is incomplete");
+  }
+  const rawBrief = brief?.raw || brief;
+  const source = report.source;
+  const coordinates = report.coordinateSystem;
+  if (!rawBrief || !source
+    || source.sceneBriefSchemaVersion !== rawBrief.schemaVersion
+    || source.contractId !== rawBrief.contractId
+    || source.label !== rawBrief.label
+    || !coordinates
+    || coordinates.horizontalPlane !== rawBrief.coordinateSystem?.horizontalPlane
+    || coordinates.verticalAxis !== rawBrief.coordinateSystem?.verticalAxis
+    || coordinates.origin !== rawBrief.coordinateSystem?.origin
+    || coordinates.units !== rawBrief.units) {
+    throw new Error("Validation report source or coordinate system does not match the scene brief");
+  }
+  const checks = report.checks;
+  if (!Array.isArray(checks) || checks.length !== EXPECTED_CHECK_IDS.length) {
+    throw new Error("Validation report must contain exactly six canonical checks");
+  }
+  const checkIds = checks.map((check) => check?.checkId);
+  if (new Set(checkIds).size !== checkIds.length || checkIds.some((id, index) => id !== EXPECTED_CHECK_IDS[index])) {
+    throw new Error("Validation report checks must be unique and in canonical order");
+  }
+  const geometryIds = new Set();
   checks.forEach((check) => {
-    const geometry = check.violationGeometry || check.evidenceGeometry || check.geometry || [];
-    const list = Array.isArray(geometry) ? geometry : [geometry];
-    list.filter(Boolean).forEach((shape) => items.push({ shape, status: check.status || "pass", checkId: check.checkId || check.id }));
+    if (!["pass", "fail"].includes(check.status) || !["error", "warning"].includes(check.severity)) {
+      throw new Error(`Validation check ${check.checkId} has an unsupported status or severity`);
+    }
+    if (!check.measured || typeof check.measured !== "object" || Array.isArray(check.measured)
+      || !check.required || typeof check.required !== "object" || Array.isArray(check.required)
+      || !Array.isArray(check.evidenceGeometry) || !Array.isArray(check.violationGeometry)) {
+      throw new Error(`Validation check ${check.checkId} has invalid structured values or geometry`);
+    }
+    if (check.status === "pass" && check.violationGeometry.length) {
+      throw new Error(`Passing check ${check.checkId} must not contain violation geometry`);
+    }
+    [...check.evidenceGeometry, ...check.violationGeometry].forEach((shape) => validateGeometry(shape, geometryIds));
   });
-  return items;
+  const expectedSeatCapacity = (rawBrief.seats || []).filter((seat) => seat.countsTowardCapacity === true).length;
+  if (checks[5].measured.count !== expectedSeatCapacity) {
+    throw new Error("Validation report seat measurement does not match brief-derived capacity");
+  }
+  const counts = {
+    total: checks.length,
+    passed: checks.filter((check) => check.status === "pass").length,
+    failedErrors: checks.filter((check) => check.status === "fail" && check.severity === "error").length,
+    failedWarnings: checks.filter((check) => check.status === "fail" && check.severity === "warning").length,
+  };
+  const summary = report.summary;
+  const expectedOverallStatus = counts.failedErrors > 0 ? "fail" : "pass";
+  if (!summary
+    || !["pass", "fail"].includes(summary.overallStatus)
+    || summary.overallStatus !== expectedOverallStatus
+    || Object.entries(counts).some(([key, value]) => summary[key] !== value)) {
+    throw new Error("Validation report summary does not match its checks");
+  }
+  return checks;
 }
 
-function statusColor(status) {
-  if (status === "fail" || status === "error") return FAIL;
-  if (status === "warning" || status === "warn") return WARNING;
-  return PASS;
+function geometryItems(report, brief) {
+  const checks = validateValidationReport(report, brief);
+  return checks.flatMap((check) => [
+    ...check.evidenceGeometry.map((shape) => ({ shape, checkId: check.checkId, status: check.status, severity: check.severity, subset: "evidence" })),
+    ...check.violationGeometry.map((shape) => ({ shape, checkId: check.checkId, status: check.status, severity: check.severity, subset: "violation" })),
+  ]);
 }
 
-function xz(point) {
-  if (Array.isArray(point)) return [number(point[0], 0), number(point.length > 2 ? point[2] : point[1], 0)];
-  return [number(point?.x, 0), number(point?.z ?? point?.y, 0)];
+function statusColor(status, severity) {
+  if (status === "pass") return PASS;
+  return severity === "warning" ? WARNING : FAIL;
+}
+
+function vector3([x, z], height = 0.05) {
+  return new THREE.Vector3(x, height, z);
 }
 
 function overlayShape(parent, entry) {
-  const { shape, status, checkId } = entry;
-  const type = String(shape.type || shape.kind || "").toLowerCase();
-  const color = statusColor(status);
-  const lineMaterial = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95, depthTest: false });
-  const fillMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: status === "pass" ? 0.18 : 0.28, depthWrite: false, depthTest: false, side: THREE.DoubleSide });
+  const { shape, status, severity, checkId, subset } = entry;
+  const color = statusColor(status, severity);
+  const opacity = subset === "violation" ? 1 : status === "pass" ? 0.72 : 0.52;
+  const lineMaterial = new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false, depthTest: false, toneMapped: false });
+  const fillMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: subset === "violation" ? 0.28 : 0.14, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
   let object;
 
-  if (/circle|turn/.test(type) || shape.radius || shape.diameter) {
-    const [x, z] = xz(shape.center || shape.position || [shape.x, shape.z]);
-    const radius = number(shape.radius, number(shape.diameter, 1.5) / 2);
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(radius, 64), fillMaterial);
+  if (shape.type === "point") {
+    lineMaterial.dispose();
+    object = new THREE.Mesh(new THREE.SphereGeometry(subset === "violation" ? 0.1 : 0.075, 16, 12), fillMaterial);
+    object.position.copy(vector3(shape.point, 0.09));
+  } else if (shape.type === "circle") {
+    lineMaterial.dispose();
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(shape.radiusM, 64), fillMaterial);
     fill.rotation.x = -Math.PI / 2;
-    const ring = new THREE.Mesh(new THREE.RingGeometry(radius - 0.025, radius + 0.025, 64), fillMaterial.clone());
-    ring.material.opacity = 0.95;
+    const ringMaterial = fillMaterial.clone();
+    ringMaterial.opacity = opacity;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(Math.max(0.001, shape.radiusM - 0.025), shape.radiusM + 0.025, 64), ringMaterial);
     ring.rotation.x = -Math.PI / 2;
     object = new THREE.Group();
     object.add(fill, ring);
-    object.position.set(x, 0.035, z);
-  } else if (/box|rect|bbox/.test(type) || shape.bbox) {
-    const bounds = shape.bbox || shape;
-    const [x, z] = xz(shape.center || shape.position || [bounds.x, bounds.z]);
-    const width = number(bounds.w ?? bounds.width, 0.5);
-    const depth = number(bounds.d ?? bounds.depth ?? bounds.h, 0.5);
-    object = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), fillMaterial);
-    object.rotation.x = -Math.PI / 2;
-    object.position.set(x, 0.04, z);
+    object.position.copy(vector3(shape.center, 0.035));
   } else {
-    const source = shape.points || shape.path || shape.segment || [shape.start, shape.end].filter(Boolean);
-    const points = (source || []).map((point) => {
-      const [x, z] = xz(point);
-      return new THREE.Vector3(x, 0.05, z);
-    });
-    if (points.length < 2) return;
-    const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.2);
-    object = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(8, points.length * 12), 0.035, 8, false), fillMaterial);
+    const points = shape.type === "segment" ? [shape.from, shape.to] : shape.points;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points.map((point) => vector3(point)));
+    object = shape.type === "polygon" ? new THREE.LineLoop(geometry, lineMaterial) : new THREE.Line(geometry, lineMaterial);
+    fillMaterial.dispose();
   }
-  object.name = `validator_${checkId || type || "evidence"}`;
-  object.renderOrder = 20;
+  object.name = `validator_${checkId}_${shape.id}`;
+  object.traverse((child) => { child.renderOrder = subset === "violation" ? 1001 : 1000; });
   parent.add(object);
 }
 
-function clearGroup(group) {
+function clearGroup(group, { disposeMaterials = false } = {}) {
   while (group.children.length) {
     const child = group.children[0];
     group.remove(child);
     child.traverse?.((object) => {
       object.geometry?.dispose?.();
-      if (object.material && !Array.isArray(object.material)) object.material.dispose?.();
+      object.shadow?.map?.dispose?.();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.filter(Boolean).forEach((material) => {
+        if (disposeMaterials || material.userData?.room50Owned) material.dispose?.();
+      });
     });
   }
+}
+
+function clearGroupExcept(group, childToKeep, options) {
+  group.remove(childToKeep);
+  clearGroup(group, options);
+  group.add(childToKeep);
 }
 
 async function readJson(source) {
@@ -266,17 +584,19 @@ export async function createStarterScene(options) {
   const container = typeof options.container === "string" ? document.querySelector(options.container) : options.container;
   if (!container) throw new Error("createStarterScene requires a container element");
 
-  let brief = normalizeBrief(await readJson(options.brief));
+  let brief = normalizeSceneBrief(await readJson(options.brief));
   let report = await readJson(options.report);
   let presetId = options.preset || "hearth";
   let lightingMode = options.lighting || "day";
+  let visualSource = options.visual || null;
+  let loadRevision = 0;
   let style = createStylePreset(THREE, presetId);
 
   const scene = new THREE.Scene();
   scene.name = "room50_starter_scene";
   scene.background = new THREE.Color(style.colors.background);
   scene.fog = new THREE.Fog(style.colors.background, 16, 30);
-  const groups = Object.fromEntries(GROUPS.map((name) => {
+  const groups = Object.fromEntries([...GROUPS, VISUAL_GROUP].map((name) => {
     const group = new THREE.Group(); group.name = name; scene.add(group); return [name, group];
   }));
   const validatorOverlay = new THREE.Group();
@@ -292,6 +612,26 @@ export async function createStarterScene(options) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.replaceChildren(renderer.domElement);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+  scene.environment = environment;
+
+  function setProceduralVisibility(visible) {
+    PROCEDURAL_GROUPS.forEach((name) => { groups[name].visible = visible; });
+  }
+
+  const archviz = createArchvizLayer({
+    renderer,
+    parent: groups.visual,
+    onState(state) {
+      const ready = state.status === "ready";
+      setProceduralVisibility(!ready);
+      setLighting(lightingMode);
+      options.onVisualState?.({ ...state, mode: ready ? "archviz" : "procedural" });
+    },
+  });
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -320,17 +660,24 @@ export async function createStarterScene(options) {
 
   function rebuild() {
     GROUPS.filter((name) => name !== "accessibility" && name !== "lighting").forEach((name) => clearGroup(groups[name]));
-    clearGroup(validatorOverlay);
+    clearGroupExcept(groups.accessibility, validatorOverlay);
+    clearGroup(validatorOverlay, { disposeMaterials: true });
     clearGroup(groups.lighting);
     buildShell(groups.shell, brief.shell, style);
-    brief.objects.forEach((item) => groups[semanticGroup(item.semanticTag)].add(createObject(item, style)));
-    geometryItems(report).forEach((entry) => overlayShape(validatorOverlay, entry));
+    brief.objects.forEach((item) => groups[item.semanticGroup].add(createObject(item, style)));
+    geometryItems(report, brief).forEach((entry) => overlayShape(validatorOverlay, entry));
     groups.lighting.add(createLightingRig(THREE, presetId, lightingMode));
     const extent = Math.max(brief.shell.length, brief.shell.width);
-    views.perspective = { position: new THREE.Vector3(extent * 1.03, extent * 0.82, extent * 1.08), target: new THREE.Vector3(0, 0.55, 0) };
+    views.perspective = { position: new THREE.Vector3(extent * 0.88, extent * 0.70, extent * 0.92), target: new THREE.Vector3(0, 0.55, 0) };
     views.top = { position: new THREE.Vector3(0.01, extent * 1.7, 0.01), target: new THREE.Vector3(0, 0, 0) };
     views.accessibility = { position: new THREE.Vector3(extent * 0.65, extent * 1.12, extent * 0.82), target: new THREE.Vector3(0, 0, 0) };
-    options.onStatus?.({ brief: brief.raw, report, checks: reportChecks(report), overlayCount: validatorOverlay.children.length });
+    options.onStatus?.({
+      brief: brief.raw,
+      report,
+      checks: validateValidationReport(report, brief),
+      overlayCount: validatorOverlay.children.length,
+      seatCapacity: brief.seatCapacity,
+    });
   }
 
   function setPreset(nextPreset) {
@@ -345,15 +692,36 @@ export async function createStarterScene(options) {
   function setLighting(nextMode) {
     lightingMode = nextMode === "night" ? "night" : "day";
     const rig = groups.lighting.getObjectByName("lighting_rig");
-    if (rig) setLightingMode(THREE, rig, presetId, lightingMode);
-    renderer.toneMappingExposure = lightingMode === "night" ? 0.92 : 1.02;
+    const hasArchviz = groups.visual.children.length > 0;
+    if (rig) {
+      setLightingMode(THREE, rig, presetId, lightingMode);
+      if (hasArchviz) rig.traverse((object) => { if (object.isLight) object.intensity *= 0.78; });
+    }
+    renderer.toneMappingExposure = lightingMode === "night" ? (hasArchviz ? 0.86 : 0.92) : (hasArchviz ? 0.96 : 1.02);
   }
 
-  async function load({ brief: nextBrief, report: nextReport }) {
-    if (nextBrief) brief = normalizeBrief(await readJson(nextBrief));
-    report = nextReport === undefined ? report : await readJson(nextReport);
+  async function load({ brief: nextBrief, report: nextReport, visual: nextVisual } = {}) {
+    const revision = ++loadRevision;
+    const resolvedVisual = nextVisual === undefined ? visualSource : nextVisual;
+    const [resolvedBrief, resolvedReport] = await Promise.all([
+      nextBrief ? readJson(nextBrief).then(normalizeSceneBrief) : Promise.resolve(brief),
+      nextReport === undefined ? Promise.resolve(report) : readJson(nextReport),
+    ]);
+    if (revision !== loadRevision || destroyed) return { status: "superseded" };
+    brief = resolvedBrief;
+    report = resolvedReport;
+    visualSource = resolvedVisual;
     rebuild();
+    const visualState = await archviz.load(visualSource);
+    if (revision !== loadRevision || destroyed) return { status: "superseded" };
     setView("perspective", true);
+    return { status: "ready", visual: visualState };
+  }
+
+  async function loadVisual(nextVisual) {
+    loadRevision += 1;
+    visualSource = nextVisual;
+    return archviz.load(visualSource);
   }
 
   const resize = () => {
@@ -382,14 +750,22 @@ export async function createStarterScene(options) {
     renderer.render(scene, camera);
   }
   renderer.setAnimationLoop(animate);
+  const visualReady = archviz.load(visualSource);
 
   return {
-    scene, camera, renderer, groups, load, setView, setPreset, setLighting,
+    scene, camera, renderer, groups, load, loadVisual, setView, setPreset, setLighting, visualReady,
     dispose() {
       destroyed = true;
+      loadRevision += 1;
       renderer.setAnimationLoop(null);
       observer.disconnect();
       controls.dispose();
+      archviz.dispose();
+      GROUPS.filter((name) => name !== "accessibility").forEach((name) => clearGroup(groups[name]));
+      clearGroupExcept(groups.accessibility, validatorOverlay);
+      clearGroup(validatorOverlay, { disposeMaterials: true });
+      groups.accessibility.remove(validatorOverlay);
+      environment.dispose();
       renderer.dispose();
       disposeStylePreset(style);
       container.replaceChildren();

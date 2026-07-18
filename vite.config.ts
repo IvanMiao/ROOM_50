@@ -10,15 +10,23 @@ const publicFiles = [
   "robots.txt",
 ] as const;
 
-const publicDirectories = [".well-known", "agent", "assets"] as const;
+const publicDirectories = [
+  ".well-known",
+  "agent",
+  "assets",
+  "demo/fixtures",
+  "docs",
+] as const;
 
 function copyAgentResources(): Plugin {
+  let projectRoot = resolve(".");
   let outputDirectory = resolve("dist");
 
   return {
     name: "copy-agent-resources",
     apply: "build",
     configResolved(config) {
+      projectRoot = config.root;
       outputDirectory = resolve(config.root, config.build.outDir);
     },
     async closeBundle() {
@@ -26,10 +34,10 @@ function copyAgentResources(): Plugin {
 
       await Promise.all([
         ...publicFiles.map((file) =>
-          copyFile(resolve(file), resolve(outputDirectory, file)),
+          copyFile(resolve(projectRoot, file), resolve(outputDirectory, file)),
         ),
         ...publicDirectories.map((directory) =>
-          cp(resolve(directory), resolve(outputDirectory, directory), {
+          cp(resolve(projectRoot, directory), resolve(outputDirectory, directory), {
             recursive: true,
           }),
         ),
@@ -44,5 +52,11 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: resolve("index.html"),
+        demo: resolve("demo/index.html"),
+      },
+    },
   },
 });

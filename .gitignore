@@ -4,5 +4,9 @@
 node_modules/
 dist/
 .netlify/
+.playwright-cli/
+output/playwright/
+__pycache__/
+*.blend1
 .DS_Store
 Thumbs.db

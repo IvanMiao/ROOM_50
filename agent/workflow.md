@@ -41,8 +41,12 @@ Prefer route continuity over seat count. Aim for 14–18 seats only if clearance
 5. Add the accessible route and turning circles as translucent, independently toggleable geometry.
 6. Add Perspective, Top, and Accessibility views.
 7. Add restrained concept materials, basic lighting, and a non-WebGL fallback.
-8. Write `scene-brief.json` containing the selected reference identity, dimensions, assumptions, and modeled checks.
+8. Write `scene-brief.json` against `scene-brief.schema.json` 1.0.0, including the selected reference identity, dimensions, assumptions, and modeled checks. Use x/z floor coordinates, y-up elevation, explicit semantic groups, object references, and capacity seats; do not add a separate `seatCount` field.
 9. Test the page at desktop and mobile widths and provide deployment instructions for Netlify.
+
+### Optional ArchViz presentation layer
+
+For a high-fidelity visual deliverable, keep the semantic scene and validator overlay intact, then load the optimized GLB as a separate presentation group. The GLB must use metre scale, share the shell-centre origin, retain semantic names, and fail back to the procedural scene. Do not derive validation measurements or success claims from the hero mesh.
 
 ## Phase 3B — Blender MCP
 
