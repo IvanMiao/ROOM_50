@@ -4,7 +4,7 @@
 Canonical URL map:
 - / — human interface, reference upload, intent controls, generated prompt, and baseline Three.js preview
 - /AGENTS.md — repository-level execution guidance and definition of done
-- /agent.md — short alias to the canonical agent guidance
+- /AGENT.md — Build for Codex agent-first requirements
 - /agent/scene-contract.json — machine-readable dimensions, zones, constraints, and checks; prefer this over pixel inference
 - /agent/workflow.md — engine-specific Three.js and Blender MCP process
 - /assets/sample-plan.svg — built-in 10 m × 5 m schematic reference
