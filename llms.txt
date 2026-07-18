@@ -7,6 +7,9 @@ Canonical URL map:
 - /AGENT.md — Build for Codex agent-first requirements
 - /agent/scene-contract.json — machine-readable dimensions, zones, constraints, and checks; prefer this over pixel inference
 - /agent/workflow.md — engine-specific Three.js and Blender MCP process
+- /docs/ARCHVIZ-PLAN.md — presentation-layer contract, asset policy, performance budget, and delivery phases
+- /demo/ — deterministic fail/pass evidence viewer with optional ArchViz GLB and procedural fallback
+- /assets/archviz/ — generated visual scenes and their provenance notes
 - /assets/sample-plan.svg — built-in 10 m × 5 m schematic reference
 - /.well-known/agent.json — compact discovery manifest
 
@@ -32,3 +35,6 @@ Recommended exploration sequence:
 
 Safety and truthfulness:
 Dimensions are demo modeling targets, not proof of local-code compliance. Do not provide construction, structural, fire, plumbing, or MEP certification. Label results “concept demo — not for construction.”
+
+Visual-layer rule:
+An ArchViz GLB is presentation only. Never treat its appearance, baked lighting, or mesh bounds as validator evidence. Read spatial truth from scene-brief.json and pass/fail truth from validation-report.json.

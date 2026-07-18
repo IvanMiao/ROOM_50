@@ -17,6 +17,8 @@ python -m http.server 4173
 
 Then open `http://127.0.0.1:4173`.
 
+Open `http://127.0.0.1:4173/demo/` for the deterministic fail/pass evidence viewer. It progressively loads a Blender-authored ArchViz GLB when available and falls back to the semantic procedural renderer if that asset is absent or unsupported.
+
 ## Deploy to Netlify
 
 Connect this repository in Netlify. `netlify.toml` already configures the repository root as the publish directory with no build command. You can also drag the folder into Netlify Drop.
@@ -28,6 +30,12 @@ Connect this repository in Netlify. `netlify.toml` already configures the reposi
 - `/agent/scene-contract.json` — canonical machine-readable constraints
 - `/agent/workflow.md` — engine-specific build sequence
 - `/.well-known/agent.json` — small discovery manifest
+
+## ArchViz presentation layer
+
+The high-visual pipeline is documented in [`docs/ARCHVIZ-PLAN.md`](./docs/ARCHVIZ-PLAN.md). Blender sources and repeatable generation commands live under `blender/`; generated browser assets and provenance notes live under `assets/archviz/`.
+
+The presentation layer never replaces the data contract: `scene-brief.json` supplies spatial geometry and `validation-report.json` supplies evidence overlays.
 
 ## Privacy and scope
 

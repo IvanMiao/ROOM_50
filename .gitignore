@@ -3,5 +3,8 @@
 .local/
 node_modules/
 .netlify/
+.playwright-cli/
+__pycache__/
+*.blend1
 .DS_Store
 Thumbs.db

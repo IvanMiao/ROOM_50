@@ -39,6 +39,10 @@ Prefer route continuity over seat count. Aim for 14–18 seats only if clearance
 7. Write `scene-brief.json` containing dimensions, assumptions, and modeled checks.
 8. Test the page at desktop and mobile widths and provide deployment instructions for Netlify.
 
+### Optional ArchViz presentation layer
+
+For a high-fidelity visual deliverable, keep the semantic scene and validator overlay intact, then load the optimized GLB as a separate presentation group. The GLB must use metre scale, share the shell-centre origin, retain semantic names, and fail back to the procedural scene. Do not derive validation measurements or success claims from the hero mesh.
+
 ## Phase 3B — Blender MCP
 
 1. Verify the Blender MCP connection; do not simulate tool success in text.

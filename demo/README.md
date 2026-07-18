@@ -15,6 +15,8 @@ Useful URLs:
 
 The evidence overlay is generated from `violationGeometry` or `evidenceGeometry` in the report. It is not inferred from scene styling.
 
+The viewer also attempts to load the matching ArchViz GLB from `/assets/archviz/`. Until that presentation asset is ready—or whenever it fails to load—the semantic procedural scene remains visible automatically. Validator overlays use the same independent report path in both modes.
+
 | Validator fail | Repaired scene |
 | --- | --- |
 | ![Route width failure](./screenshots/fail.png) | ![All checks passing](./screenshots/pass.png) |
@@ -28,6 +30,7 @@ const viewer = await createStarterScene({
   container: document.querySelector("#viewer"),
   brief: "/scene-brief.json",
   report: "/validation-report.json",
+  visual: { url: "/assets/archviz/room50-cafe-pass.glb", variant: "pass" },
   preset: "hearth",
   view: "accessibility",
 });

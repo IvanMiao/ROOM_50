@@ -64,7 +64,7 @@
             <div class="loading">Building true-scale scene…</div>
           </div>
           <div class="viewport-foot">
-            <span>10 × 5 m shell</span><span>1 unit = 1 metre</span><span>drag to orbit</span>
+            <span>10 × 5 m shell</span><span id="visualState" class="visual-state">Loading visual</span><span>drag to orbit</span>
           </div>
         </section>
 
@@ -75,7 +75,7 @@
           </div>
           <div class="check-list" id="checkList" aria-live="polite"></div>
           <div class="display-controls">
-            <label>Palette
+            <label><span id="paletteLabel">Fallback palette</span>
               <select id="paletteSelect"><option value="hearth">Hearth / warm clay</option><option value="linen">Linen / quiet blue</option></select>
             </label>
             <button id="lightToggle" type="button" aria-pressed="false"><span>☼</span> Day light</button>

@@ -1,19 +1,20 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { createArchvizLayer } from "./kit/archviz-layer.js";
+import { versionedArchvizUrl } from "./kit/archviz-version.js";
 
 const container = document.querySelector("#sceneCanvas");
 const stage = document.querySelector("#sceneStage");
 
 if (container && stage) {
-  try {
-    initScene(container, stage);
-  } catch (error) {
+  initScene(container, stage).catch((error) => {
     console.warn("ROOM/50 Three.js preview could not start; keeping the plan fallback visible.", error);
     stage.querySelector(".scene-fallback span").textContent = "3D 不可用 · 显示平面图";
-  }
+  });
 }
 
-function initScene(target, sceneStage) {
+async function initScene(target, sceneStage) {
   const scene = new THREE.Scene();
   scene.name = "room50_accessible_cafe_preview";
 
@@ -29,6 +30,11 @@ function initScene(target, sceneStage) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   target.append(renderer.domElement);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+  scene.environment = environment;
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -77,6 +83,10 @@ function initScene(target, sceneStage) {
   lighting.name = "lighting";
   scene.add(lighting);
 
+  const visual = new THREE.Group();
+  visual.name = "visual";
+  scene.add(visual);
+
   addBox(shell, "floor_10x5m", [10, 0.14, 5], [0, -0.07, 0], palette.floor, true);
   addBox(shell, "rear_wall", [10, 3.2, 0.14], [0, 1.6, -2.5], palette.wall, true);
   addBox(shell, "left_wall", [0.14, 3.2, 5], [-5, 1.6, 0], palette.wall, true);
@@ -104,10 +114,11 @@ function initScene(target, sceneStage) {
   sceneStage.classList.add("is-3d-ready");
 
   const views = {
-    perspective: { position: new THREE.Vector3(10.8, 8.6, 11.8), target: new THREE.Vector3(0, 0.65, 0), access: true },
+    perspective: { position: new THREE.Vector3(10.8, 8.6, 11.8), target: new THREE.Vector3(0, 0.65, 0), access: false },
     top: { position: new THREE.Vector3(0.01, 16.5, 0.01), target: new THREE.Vector3(0, 0, 0), access: false },
     access: { position: new THREE.Vector3(7.8, 11.5, 9.4), target: new THREE.Vector3(-0.5, 0, 0), access: true },
   };
+  accessibility.visible = views.perspective.access;
 
   let activeTween = null;
 
@@ -155,6 +166,32 @@ function initScene(target, sceneStage) {
   }
 
   renderer.setAnimationLoop(animate);
+
+  const proceduralGroups = [shell, architecture, service, furniture];
+  const archviz = createArchvizLayer({
+    renderer,
+    parent: visual,
+    onState({ status }) {
+      const ready = status === "ready";
+      proceduralGroups.forEach((group) => { group.visible = !ready; });
+      sceneStage.classList.toggle("is-archviz-ready", ready);
+    },
+  });
+  await archviz.load({
+    url: versionedArchvizUrl("/assets/archviz/room50-cafe-pass.glb"),
+    name: "archviz_pass",
+    variant: "pass",
+    envMapIntensity: 0.9,
+  });
+
+  window.addEventListener("beforeunload", () => {
+    renderer.setAnimationLoop(null);
+    resizeObserver.disconnect();
+    controls.dispose();
+    archviz.dispose();
+    environment.dispose();
+    renderer.dispose();
+  }, { once: true });
 }
 
 function addBox(parent, name, size, position, material, shadow = false) {

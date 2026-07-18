@@ -1,8 +1,12 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { createArchvizLayer } from "./archviz-layer.js";
 import { createLightingRig, createStylePreset, disposeStylePreset, setLightingMode } from "./style-presets.js";
 
 const GROUPS = ["shell", "architecture", "service", "furniture", "accessibility", "lighting"];
+const PROCEDURAL_GROUPS = ["shell", "architecture", "service", "furniture"];
+const VISUAL_GROUP = "visual";
 const PASS = 0x77df8b;
 const FAIL = 0xff4d45;
 const WARNING = 0xffb347;
@@ -167,6 +171,7 @@ function buildShell(group, shell, style) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
   const grid = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x39352f, transparent: true, opacity: 0.15 }));
+  grid.material.userData.room50Owned = true;
   grid.name = "one_metre_grid";
   group.add(grid);
 }
@@ -203,8 +208,7 @@ function overlayShape(parent, entry) {
   const { shape, status, checkId } = entry;
   const type = String(shape.type || shape.kind || "").toLowerCase();
   const color = statusColor(status);
-  const lineMaterial = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95, depthTest: false });
-  const fillMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: status === "pass" ? 0.18 : 0.28, depthWrite: false, depthTest: false, side: THREE.DoubleSide });
+  const fillMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: status === "pass" ? 0.18 : 0.28, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
   let object;
 
   if (/circle|turn/.test(type) || shape.radius || shape.diameter) {
@@ -232,24 +236,37 @@ function overlayShape(parent, entry) {
       const [x, z] = xz(point);
       return new THREE.Vector3(x, 0.05, z);
     });
-    if (points.length < 2) return;
+    if (points.length < 2) {
+      fillMaterial.dispose();
+      return;
+    }
     const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.2);
     object = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(8, points.length * 12), 0.035, 8, false), fillMaterial);
   }
   object.name = `validator_${checkId || type || "evidence"}`;
-  object.renderOrder = 20;
+  object.traverse((child) => { child.renderOrder = 1000; });
   parent.add(object);
 }
 
-function clearGroup(group) {
+function clearGroup(group, { disposeMaterials = false } = {}) {
   while (group.children.length) {
     const child = group.children[0];
     group.remove(child);
     child.traverse?.((object) => {
       object.geometry?.dispose?.();
-      if (object.material && !Array.isArray(object.material)) object.material.dispose?.();
+      object.shadow?.map?.dispose?.();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.filter(Boolean).forEach((material) => {
+        if (disposeMaterials || material.userData?.room50Owned) material.dispose?.();
+      });
     });
   }
+}
+
+function clearGroupExcept(group, childToKeep, options) {
+  group.remove(childToKeep);
+  clearGroup(group, options);
+  group.add(childToKeep);
 }
 
 async function readJson(source) {
@@ -270,13 +287,15 @@ export async function createStarterScene(options) {
   let report = await readJson(options.report);
   let presetId = options.preset || "hearth";
   let lightingMode = options.lighting || "day";
+  let visualSource = options.visual || null;
+  let loadRevision = 0;
   let style = createStylePreset(THREE, presetId);
 
   const scene = new THREE.Scene();
   scene.name = "room50_starter_scene";
   scene.background = new THREE.Color(style.colors.background);
   scene.fog = new THREE.Fog(style.colors.background, 16, 30);
-  const groups = Object.fromEntries(GROUPS.map((name) => {
+  const groups = Object.fromEntries([...GROUPS, VISUAL_GROUP].map((name) => {
     const group = new THREE.Group(); group.name = name; scene.add(group); return [name, group];
   }));
   const validatorOverlay = new THREE.Group();
@@ -292,6 +311,26 @@ export async function createStarterScene(options) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.replaceChildren(renderer.domElement);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+  scene.environment = environment;
+
+  function setProceduralVisibility(visible) {
+    PROCEDURAL_GROUPS.forEach((name) => { groups[name].visible = visible; });
+  }
+
+  const archviz = createArchvizLayer({
+    renderer,
+    parent: groups.visual,
+    onState(state) {
+      const ready = state.status === "ready";
+      setProceduralVisibility(!ready);
+      setLighting(lightingMode);
+      options.onVisualState?.({ ...state, mode: ready ? "archviz" : "procedural" });
+    },
+  });
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -320,14 +359,15 @@ export async function createStarterScene(options) {
 
   function rebuild() {
     GROUPS.filter((name) => name !== "accessibility" && name !== "lighting").forEach((name) => clearGroup(groups[name]));
-    clearGroup(validatorOverlay);
+    clearGroupExcept(groups.accessibility, validatorOverlay);
+    clearGroup(validatorOverlay, { disposeMaterials: true });
     clearGroup(groups.lighting);
     buildShell(groups.shell, brief.shell, style);
     brief.objects.forEach((item) => groups[semanticGroup(item.semanticTag)].add(createObject(item, style)));
     geometryItems(report).forEach((entry) => overlayShape(validatorOverlay, entry));
     groups.lighting.add(createLightingRig(THREE, presetId, lightingMode));
     const extent = Math.max(brief.shell.length, brief.shell.width);
-    views.perspective = { position: new THREE.Vector3(extent * 1.03, extent * 0.82, extent * 1.08), target: new THREE.Vector3(0, 0.55, 0) };
+    views.perspective = { position: new THREE.Vector3(extent * 0.88, extent * 0.70, extent * 0.92), target: new THREE.Vector3(0, 0.55, 0) };
     views.top = { position: new THREE.Vector3(0.01, extent * 1.7, 0.01), target: new THREE.Vector3(0, 0, 0) };
     views.accessibility = { position: new THREE.Vector3(extent * 0.65, extent * 1.12, extent * 0.82), target: new THREE.Vector3(0, 0, 0) };
     options.onStatus?.({ brief: brief.raw, report, checks: reportChecks(report), overlayCount: validatorOverlay.children.length });
@@ -345,15 +385,36 @@ export async function createStarterScene(options) {
   function setLighting(nextMode) {
     lightingMode = nextMode === "night" ? "night" : "day";
     const rig = groups.lighting.getObjectByName("lighting_rig");
-    if (rig) setLightingMode(THREE, rig, presetId, lightingMode);
-    renderer.toneMappingExposure = lightingMode === "night" ? 0.92 : 1.02;
+    const hasArchviz = groups.visual.children.length > 0;
+    if (rig) {
+      setLightingMode(THREE, rig, presetId, lightingMode);
+      if (hasArchviz) rig.traverse((object) => { if (object.isLight) object.intensity *= 0.78; });
+    }
+    renderer.toneMappingExposure = lightingMode === "night" ? (hasArchviz ? 0.86 : 0.92) : (hasArchviz ? 0.96 : 1.02);
   }
 
-  async function load({ brief: nextBrief, report: nextReport }) {
-    if (nextBrief) brief = normalizeBrief(await readJson(nextBrief));
-    report = nextReport === undefined ? report : await readJson(nextReport);
+  async function load({ brief: nextBrief, report: nextReport, visual: nextVisual } = {}) {
+    const revision = ++loadRevision;
+    const resolvedVisual = nextVisual === undefined ? visualSource : nextVisual;
+    const [resolvedBrief, resolvedReport] = await Promise.all([
+      nextBrief ? readJson(nextBrief).then(normalizeBrief) : Promise.resolve(brief),
+      nextReport === undefined ? Promise.resolve(report) : readJson(nextReport),
+    ]);
+    if (revision !== loadRevision || destroyed) return { status: "superseded" };
+    brief = resolvedBrief;
+    report = resolvedReport;
+    visualSource = resolvedVisual;
     rebuild();
+    const visualState = await archviz.load(visualSource);
+    if (revision !== loadRevision || destroyed) return { status: "superseded" };
     setView("perspective", true);
+    return { status: "ready", visual: visualState };
+  }
+
+  async function loadVisual(nextVisual) {
+    loadRevision += 1;
+    visualSource = nextVisual;
+    return archviz.load(visualSource);
   }
 
   const resize = () => {
@@ -382,14 +443,22 @@ export async function createStarterScene(options) {
     renderer.render(scene, camera);
   }
   renderer.setAnimationLoop(animate);
+  const visualReady = archviz.load(visualSource);
 
   return {
-    scene, camera, renderer, groups, load, setView, setPreset, setLighting,
+    scene, camera, renderer, groups, load, loadVisual, setView, setPreset, setLighting, visualReady,
     dispose() {
       destroyed = true;
+      loadRevision += 1;
       renderer.setAnimationLoop(null);
       observer.disconnect();
       controls.dispose();
+      archviz.dispose();
+      GROUPS.filter((name) => name !== "accessibility").forEach((name) => clearGroup(groups[name]));
+      clearGroupExcept(groups.accessibility, validatorOverlay);
+      clearGroup(validatorOverlay, { disposeMaterials: true });
+      groups.accessibility.remove(validatorOverlay);
+      environment.dispose();
       renderer.dispose();
       disposeStylePreset(style);
       container.replaceChildren();
