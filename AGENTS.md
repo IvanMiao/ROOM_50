@@ -1,5 +1,19 @@
 # ROOM/50 agent instructions
 
+## Build for Codex: agent-first requirement
+
+ROOM/50 is a Netlify-deployable **Build for Codex** web demo. The website itself must be designed for agents, not merely as a human interface with agent documentation added afterward.
+
+These constraints are non-negotiable:
+
+- An agent must be able to visit the deployed URL and understand the task without repository access.
+- Keep `/llms.txt`, `/AGENT.md`, `/AGENTS.md`, `/agent/scene-contract.json`, and `/.well-known/agent.json` publicly accessible.
+- Put essential instructions, constraints, workflows, and completion checks in readable HTML, text, or JSON, not only in images, canvas, or visual styling.
+- The generated prompt must send the agent to the website first and identify the machine-readable resources it should inspect.
+- Clearly distinguish observed information, user intent, fixed constraints, and assumptions.
+- Never claim access to a browser-local upload unless the agent can inspect that browser session. Otherwise, ask the user to attach the image.
+- Preserve this agent-facing experience whenever the website changes.
+
 ## Purpose
 
 ROOM/50 is an exploratory handoff surface for one bounded spatial-modeling task: create a concept-level 3D model of a **50 m² accessible neighbourhood café** from a reference image and a user intent.
