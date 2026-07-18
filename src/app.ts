@@ -16,12 +16,46 @@ const CASE_CONTRACT = Object.freeze({
   },
 });
 
+type Engine = "threejs" | "blender";
+
+interface ReferenceImage {
+  kind: "sample" | "upload";
+  name: string;
+  type: string;
+  size: number | null;
+  width: number | null;
+  height: number | null;
+}
+
+interface AppState {
+  engine: Engine;
+  intent: string;
+  tags: Set<IntentTag>;
+  reference: ReferenceImage;
+  objectUrl: string | null;
+}
+
+interface ImageDimensions {
+  width: number | null;
+  height: number | null;
+}
+
+function requiredElement<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector);
+  if (!element) throw new Error(`Required element not found: ${selector}`);
+  return element;
+}
+
 const i18n = window.ROOM50_I18N;
 
-const state = {
+const state: AppState = {
   engine: "threejs",
   intent: i18n.defaultIntent(),
-  tags: new Set(["quietReading", "communityConnection", "loweredOrdering"]),
+  tags: new Set<IntentTag>([
+    "quietReading",
+    "communityConnection",
+    "loweredOrdering",
+  ]),
   reference: {
     kind: "sample",
     name: "room50-sample-plan.svg",
@@ -34,25 +68,25 @@ const state = {
 };
 
 const elements = {
-  uploadZone: document.querySelector("#uploadZone"),
-  planUpload: document.querySelector("#planUpload"),
-  uploadEmpty: document.querySelector("#uploadEmpty"),
-  uploadPreview: document.querySelector("#uploadPreview"),
-  previewImage: document.querySelector("#previewImage"),
-  uploadName: document.querySelector("#uploadName"),
-  uploadMeta: document.querySelector("#uploadMeta"),
-  removeUpload: document.querySelector("#removeUpload"),
-  useSample: document.querySelector("#useSample"),
-  intentInput: document.querySelector("#intentInput"),
-  promptOutput: document.querySelector("#promptOutput"),
-  promptCount: document.querySelector("#promptCount"),
-  copyPrompt: document.querySelector("#copyPrompt"),
-  downloadBrief: document.querySelector("#downloadBrief"),
-  copyPageUrl: document.querySelector("#copyPageUrl"),
-  toast: document.querySelector("#toast"),
+  uploadZone: requiredElement<HTMLElement>("#uploadZone"),
+  planUpload: requiredElement<HTMLInputElement>("#planUpload"),
+  uploadEmpty: requiredElement<HTMLElement>("#uploadEmpty"),
+  uploadPreview: requiredElement<HTMLElement>("#uploadPreview"),
+  previewImage: requiredElement<HTMLImageElement>("#previewImage"),
+  uploadName: requiredElement<HTMLElement>("#uploadName"),
+  uploadMeta: requiredElement<HTMLElement>("#uploadMeta"),
+  removeUpload: requiredElement<HTMLButtonElement>("#removeUpload"),
+  useSample: requiredElement<HTMLButtonElement>("#useSample"),
+  intentInput: requiredElement<HTMLTextAreaElement>("#intentInput"),
+  promptOutput: requiredElement<HTMLElement>("#promptOutput"),
+  promptCount: requiredElement<HTMLElement>("#promptCount"),
+  copyPrompt: requiredElement<HTMLButtonElement>("#copyPrompt"),
+  downloadBrief: requiredElement<HTMLButtonElement>("#downloadBrief"),
+  copyPageUrl: requiredElement<HTMLButtonElement>("#copyPageUrl"),
+  toast: requiredElement<HTMLElement>("#toast"),
 };
 
-function pageUrl() {
+function pageUrl(): string {
   if (window.location.protocol === "file:") {
     return "[DEPLOYED_ROOM50_URL]";
   }
@@ -60,7 +94,7 @@ function pageUrl() {
   return new URL("/", window.location.href).href;
 }
 
-function referenceDescription() {
+function referenceDescription(): string {
   const reference = state.reference;
   const dimensions = reference.width && reference.height ? `${reference.width} × ${reference.height}px` : "dimensions unknown";
 
@@ -77,7 +111,7 @@ function referenceDescription() {
   ].join("\n");
 }
 
-function engineInstructions() {
+function engineInstructions(): string {
   if (state.engine === "blender") {
     return `BLENDER MCP BUILD PATH
 - Confirm that a Blender MCP connection is available. If it is unavailable, stop and say exactly what connection is missing; do not pretend to have created a .blend file.
@@ -97,7 +131,7 @@ function engineInstructions() {
 - Deliver index.html, scene.js, styles.css, scene-brief.json, and a short README with local/deploy instructions.`;
 }
 
-function generatePrompt() {
+function generatePrompt(): string {
   const tags = [...state.tags];
   const selectedTags = tags.length
     ? tags.map((tag) => i18n.tagLabel(tag, "en")).join(", ")
@@ -161,29 +195,29 @@ DEFINITION OF DONE
 Do not widen the task to other room types, automatic code certification, photoreal rendering, or a production configurator.`;
 }
 
-function renderPrompt() {
+function renderPrompt(): void {
   const prompt = generatePrompt();
   elements.promptOutput.textContent = prompt;
   elements.promptCount.textContent = `${prompt.length.toLocaleString()} chars`;
 }
 
-function formatBytes(bytes) {
+function formatBytes(bytes: number | null): string {
   if (bytes === null || bytes === undefined) return i18n.t("builtInSample");
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-let toastTimer;
+let toastTimer: number | undefined;
 
-function showToast(message) {
+function showToast(message: string): void {
   window.clearTimeout(toastTimer);
   elements.toast.textContent = message;
   elements.toast.classList.add("is-visible");
   toastTimer = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2600);
 }
 
-async function copyText(text, successMessage) {
+async function copyText(text: string, successMessage: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
   } catch {
@@ -201,14 +235,14 @@ async function copyText(text, successMessage) {
   showToast(successMessage);
 }
 
-function revokeObjectUrl() {
+function revokeObjectUrl(): void {
   if (state.objectUrl) {
     URL.revokeObjectURL(state.objectUrl);
     state.objectUrl = null;
   }
 }
 
-function showReferencePreview(src, reference) {
+function showReferencePreview(src: string, reference: ReferenceImage): void {
   elements.previewImage.src = src;
   elements.uploadName.textContent = reference.name;
   const dimensions = reference.width && reference.height
@@ -219,7 +253,7 @@ function showReferencePreview(src, reference) {
   elements.uploadPreview.hidden = false;
 }
 
-function useSampleReference({ notify = true } = {}) {
+function useSampleReference({ notify = true }: { notify?: boolean } = {}): void {
   revokeObjectUrl();
   state.reference = {
     kind: "sample",
@@ -235,7 +269,7 @@ function useSampleReference({ notify = true } = {}) {
   if (notify) showToast(i18n.t("toastSample"));
 }
 
-function validateFile(file) {
+function validateFile(file: File): void {
   const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
   if (!allowed.includes(file.type)) {
     throw new Error(i18n.t("toastType"));
@@ -245,8 +279,8 @@ function validateFile(file) {
   }
 }
 
-async function inspectImage(file, src) {
-  return new Promise((resolve) => {
+async function inspectImage(_file: File, src: string): Promise<ImageDimensions> {
+  return new Promise<ImageDimensions>((resolve) => {
     const image = new Image();
     image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
     image.onerror = () => resolve({ width: null, height: null });
@@ -254,12 +288,12 @@ async function inspectImage(file, src) {
   });
 }
 
-async function handleFile(file) {
+async function handleFile(file: File | undefined): Promise<void> {
   if (!file) return;
   try {
     validateFile(file);
   } catch (error) {
-    showToast(error.message);
+    showToast(error instanceof Error ? error.message : String(error));
     return;
   }
 
@@ -278,7 +312,7 @@ async function handleFile(file) {
   showToast(i18n.t("toastUpload"));
 }
 
-function downloadBrief() {
+function downloadBrief(): void {
   const brief = {
     schema: "https://room50.example/schemas/brief-v1.json",
     generatedAt: new Date().toISOString(),
@@ -308,7 +342,7 @@ function downloadBrief() {
 }
 
 elements.uploadZone.addEventListener("click", (event) => {
-  if (event.target.closest("button")) return;
+  if (event.target instanceof Element && event.target.closest("button")) return;
   elements.planUpload.click();
 });
 
@@ -323,57 +357,73 @@ elements.uploadZone.setAttribute("tabindex", "0");
 elements.uploadZone.setAttribute("role", "button");
 elements.uploadZone.setAttribute("aria-label", i18n.t("uploadAria"));
 
-elements.planUpload.addEventListener("change", (event) => handleFile(event.target.files?.[0]));
+elements.planUpload.addEventListener("change", () =>
+  handleFile(elements.planUpload.files?.[0]),
+);
 
-["dragenter", "dragover"].forEach((eventName) => {
+(["dragenter", "dragover"] as const).forEach((eventName) => {
   elements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
     elements.uploadZone.classList.add("is-dragging");
   });
 });
 
-["dragleave", "drop"].forEach((eventName) => {
+(["dragleave", "drop"] as const).forEach((eventName) => {
   elements.uploadZone.addEventListener(eventName, (event) => {
     event.preventDefault();
     elements.uploadZone.classList.remove("is-dragging");
   });
 });
 
-elements.uploadZone.addEventListener("drop", (event) => handleFile(event.dataTransfer?.files?.[0]));
+elements.uploadZone.addEventListener("drop", (event) =>
+  handleFile(event.dataTransfer?.files?.[0]),
+);
 
 elements.removeUpload.addEventListener("click", (event) => {
   event.stopPropagation();
   useSampleReference({ notify: true });
 });
 
-elements.useSample.addEventListener("click", () => useSampleReference({ notify: true }));
+elements.useSample.addEventListener("click", () =>
+  useSampleReference({ notify: true }),
+);
 
-elements.intentInput.addEventListener("input", (event) => {
-  state.intent = event.target.value;
+elements.intentInput.addEventListener("input", () => {
+  state.intent = elements.intentInput.value;
   renderPrompt();
 });
 
-document.querySelectorAll(".intent-chip").forEach((chip) => {
-  chip.setAttribute("aria-pressed", chip.classList.contains("is-selected") ? "true" : "false");
+document.querySelectorAll<HTMLButtonElement>(".intent-chip").forEach((chip) => {
+  chip.setAttribute(
+    "aria-pressed",
+    chip.classList.contains("is-selected") ? "true" : "false",
+  );
   chip.addEventListener("click", () => {
     const selected = chip.classList.toggle("is-selected");
+    const intentTag = chip.dataset.intent as IntentTag;
     chip.setAttribute("aria-pressed", String(selected));
-    if (selected) state.tags.add(chip.dataset.intent);
-    else state.tags.delete(chip.dataset.intent);
+    if (selected) state.tags.add(intentTag);
+    else state.tags.delete(intentTag);
     renderPrompt();
   });
 });
 
-document.querySelectorAll('input[name="engine"]').forEach((input) => {
-  input.addEventListener("change", () => {
-    state.engine = input.value;
-    document.querySelectorAll(".engine-card").forEach((card) => card.classList.remove("is-selected"));
-    input.closest(".engine-card").classList.add("is-selected");
-    renderPrompt();
+document
+  .querySelectorAll<HTMLInputElement>('input[name="engine"]')
+  .forEach((input) => {
+    input.addEventListener("change", () => {
+      state.engine = input.value as Engine;
+      document
+        .querySelectorAll(".engine-card")
+        .forEach((card) => card.classList.remove("is-selected"));
+      input.closest(".engine-card")!.classList.add("is-selected");
+      renderPrompt();
+    });
   });
-});
 
-elements.copyPrompt.addEventListener("click", () => copyText(generatePrompt(), i18n.t("toastCopyPrompt")));
+elements.copyPrompt.addEventListener("click", () =>
+  copyText(generatePrompt(), i18n.t("toastCopyPrompt")),
+);
 elements.downloadBrief.addEventListener("click", downloadBrief);
 elements.copyPageUrl.addEventListener("click", () => {
   const kickoff = `Explore ${pageUrl()} as an agent-friendly spatial brief. Start with /llms.txt and /agent/scene-contract.json, inspect the page and its sample plan, then tell me what you can build for this 50 m2 accessible cafe. Do not modify files yet.`;
@@ -387,7 +437,10 @@ window.addEventListener("room50:localechange", ({ detail }) => {
     elements.intentInput.value = state.intent;
   }
   elements.uploadZone.setAttribute("aria-label", i18n.t("uploadAria"));
-  showReferencePreview(state.objectUrl || "/assets/sample-plan.svg", state.reference);
+  showReferencePreview(
+    state.objectUrl || "/assets/sample-plan.svg",
+    state.reference,
+  );
   renderPrompt();
 });
 
