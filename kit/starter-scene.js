@@ -32,6 +32,34 @@ function isPositiveBbox(value) {
     && isFiniteNumber(value.h) && value.h > 0;
 }
 
+function distanceToPoint([ax, az], [bx, bz]) {
+  return Math.hypot(ax - bx, az - bz);
+}
+
+function distanceToObjectFootprint(point, object) {
+  const cosine = Math.cos(-object.rotation);
+  const sine = Math.sin(-object.rotation);
+  const dx = point[0] - object.x;
+  const dz = point[1] - object.z;
+  const localX = dx * cosine - dz * sine;
+  const localZ = dx * sine + dz * cosine;
+  const outsideX = Math.max(Math.abs(localX) - object.w / 2, 0);
+  const outsideZ = Math.max(Math.abs(localZ) - object.d / 2, 0);
+  return Math.hypot(outsideX, outsideZ);
+}
+
+function distanceToDoorOpening(point, door) {
+  const halfWidth = door.clearWidthM / 2;
+  const direction = [Math.cos(door.rotation), Math.sin(door.rotation)];
+  const from = [door.position[0] - direction[0] * halfWidth, door.position[1] - direction[1] * halfWidth];
+  const to = [door.position[0] + direction[0] * halfWidth, door.position[1] + direction[1] * halfWidth];
+  const segment = [to[0] - from[0], to[1] - from[1]];
+  const lengthSquared = segment[0] ** 2 + segment[1] ** 2;
+  const projection = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+    ((point[0] - from[0]) * segment[0] + (point[1] - from[1]) * segment[1]) / lengthSquared));
+  return distanceToPoint(point, [from[0] + segment[0] * projection, from[1] + segment[1] * projection]);
+}
+
 function normalizeShell(brief = {}) {
   const shell = brief.shell || brief.roomShell || brief.room?.shell || brief.room || {};
   return {
@@ -104,6 +132,10 @@ export function normalizeSceneBrief(brief = {}) {
       || !isPoint2(item.position)
       || !isFiniteNumber(item.rotation)
       || !isPositiveBbox(item.bbox)
+      || !item.collision
+      || typeof item.collision.obstacle !== "boolean"
+      || !Array.isArray(item.collision.allowOverlapWith)
+      || new Set(item.collision.allowOverlapWith).size !== item.collision.allowOverlapWith.length
       || (item.elevationM !== undefined && (!isFiniteNumber(item.elevationM) || item.elevationM < 0)));
     if (invalidObject) throw new Error(`Canonical object ${invalidObject.id || "(unknown)"} has invalid geometry`);
     const missingGroup = objects.find((item) => !CANONICAL_GROUPS.has(String(item.semanticGroup || "").toLowerCase()));
@@ -156,6 +188,17 @@ export function normalizeSceneBrief(brief = {}) {
     if (accessibility?.turningZones?.length !== 3 || accessibility?.doors?.length !== 2) {
       throw new Error("Canonical accessibility data requires three turning zones and two doors");
     }
+    const declaredIds = [
+      ...objectIdList,
+      ...seatIdList,
+      ...accessibility.turningZones.map((zone) => zone.id),
+      ...accessibility.doors.map((door) => door.id),
+    ];
+    if (declaredIds.some((id) => !id) || new Set(declaredIds).size !== declaredIds.length) {
+      throw new Error("Canonical object, seat, turning-zone, and door IDs must be globally unique");
+    }
+    const invalidOverlap = objects.find((item) => item.collision.allowOverlapWith.some((id) => id === item.id || !objectIds.has(id)));
+    if (invalidOverlap) throw new Error(`Object ${invalidOverlap.id} has an invalid overlap exemption`);
     if (accessibility.turningZones.some((zone) => !isPoint2(zone.center) || !isFiniteNumber(zone.diameterM) || zone.diameterM <= 0)) {
       throw new Error("Canonical turning-zone geometry is invalid");
     }
@@ -175,6 +218,29 @@ export function normalizeSceneBrief(brief = {}) {
     if (doorStages.size !== 2 || !doorStages.has("entrance") || !doorStages.has("accessible-wc")) {
       throw new Error("Canonical doors must cover the entrance and accessible WC");
     }
+    const collections = {
+      objects: new Map(normalizedObjects.map((item) => [item.id, item])),
+      seats: new Map(seats.map((seat) => [seat.id, seat])),
+      doors: new Map(accessibility.doors.map((door) => [door.id, door])),
+    };
+    const expectedTargetCollections = ["doors", "objects", "objects", "seats", "doors"];
+    stops.forEach((stop, index) => {
+      const target = stop.target;
+      const expectedCollection = expectedTargetCollections[index];
+      if (!target || target.collection !== expectedCollection || !collections[expectedCollection].has(target.id)) {
+        throw new Error(`Route stop ${stop.stage} has an invalid target`);
+      }
+      const routePoint = centerline[stop.pointIndex];
+      const targetValue = collections[expectedCollection].get(target.id);
+      const distance = expectedCollection === "objects"
+        ? distanceToObjectFootprint(routePoint, targetValue)
+        : expectedCollection === "doors"
+          ? distanceToDoorOpening(routePoint, targetValue)
+          : distanceToPoint(routePoint, targetValue.position);
+      if (distance > 0.6 + Number.EPSILON) {
+        throw new Error(`Route stop ${stop.stage} is more than 0.6 m from its target`);
+      }
+    });
     const objectReferences = [
       accessibility?.serviceCounter?.counterObjectId,
       accessibility?.serviceCounter?.loweredSegmentObjectId,
@@ -338,112 +404,148 @@ function buildShell(group, shell, style) {
   group.add(grid);
 }
 
-function reportChecks(report, expectedSeatCapacity) {
-  const source = report?.checks || report?.results || report?.validationResults || report?.report?.checks;
-  const checks = Array.isArray(source)
-    ? source
-    : source && typeof source === "object"
-      ? Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }))
-      : [];
-  if (!checks.length) throw new Error("Validation report must contain at least one check");
-  const allowedStatuses = new Set(["pass", "fail", "warning"]);
-  const checkIds = checks.map((check) => check.checkId || check.id);
-  if (checkIds.some((id) => !id) || new Set(checkIds).size !== checkIds.length) {
-    throw new Error("Validation report check IDs must be present and unique");
+const EXPECTED_CHECK_IDS = ["boundary", "routeWidth", "turningZones", "counterHeight", "kneeClearance", "seatCount"];
+const GEOMETRY_TYPES = new Set(["point", "segment", "polyline", "polygon", "circle"]);
+
+function validateGeometry(shape, geometryIds) {
+  if (!shape || typeof shape !== "object" || typeof shape.id !== "string" || !shape.id || geometryIds.has(shape.id)) {
+    throw new Error("Validation report geometry IDs must be present and unique");
   }
-  if (checks.some((check) => !allowedStatuses.has(check.status))) {
-    throw new Error("Validation report contains an unsupported check status");
+  geometryIds.add(shape.id);
+  if (!GEOMETRY_TYPES.has(shape.type)) throw new Error(`Unsupported evidence geometry type: ${shape.type || "(missing)"}`);
+  if (shape.color !== undefined || shape.colour !== undefined || shape.style !== undefined) {
+    throw new Error("Validation report geometry must not contain presentation styling");
   }
-  const expectedCheckIds = ["routeWidth", "turningZones", "counterHeight", "kneeClearance", "seatCount"];
-  if (checks.length !== expectedCheckIds.length || expectedCheckIds.some((id) => !checkIds.includes(id))) {
-    throw new Error("Validation report must contain the complete canonical check set");
+  if (shape.type === "point" && !isPoint2(shape.point)) throw new Error(`Geometry ${shape.id} has an invalid point`);
+  if (shape.type === "segment" && (!isPoint2(shape.from) || !isPoint2(shape.to) || distanceToPoint(shape.from, shape.to) === 0)) {
+    throw new Error(`Geometry ${shape.id} has an invalid segment`);
   }
-  if (expectedSeatCapacity !== undefined) {
-    const seatCheck = checks.find((check) => (check.checkId || check.id) === "seatCount");
-    if (!seatCheck || Number(seatCheck.measured) !== expectedSeatCapacity) {
-      throw new Error("Validation report seat measurement does not match brief-derived capacity");
+  if ((shape.type === "polyline" || shape.type === "polygon")) {
+    const minimum = shape.type === "polygon" ? 3 : 2;
+    if (!Array.isArray(shape.points) || shape.points.length < minimum || !shape.points.every(isPoint2)) {
+      throw new Error(`Geometry ${shape.id} has invalid points`);
+    }
+    if (shape.type === "polygon" && distanceToPoint(shape.points[0], shape.points.at(-1)) === 0) {
+      throw new Error(`Geometry ${shape.id} repeats its first polygon point`);
     }
   }
+  if (shape.type === "circle" && (!isPoint2(shape.center) || !isFiniteNumber(shape.radiusM) || shape.radiusM <= 0)) {
+    throw new Error(`Geometry ${shape.id} has an invalid circle`);
+  }
+}
+
+export function validateValidationReport(report, brief) {
+  const majorVersion = /^(\d+)\./.exec(report?.reportVersion)?.[1];
+  if (majorVersion !== "1") throw new Error("Validation report uses an unsupported major version");
+  if (typeof report.validatorVersion !== "string" || !report.validatorVersion || Number.isNaN(Date.parse(report.generatedAt))) {
+    throw new Error("Validation report metadata is incomplete");
+  }
+  const rawBrief = brief?.raw || brief;
+  const source = report.source;
+  const coordinates = report.coordinateSystem;
+  if (!rawBrief || !source
+    || source.sceneBriefSchemaVersion !== rawBrief.schemaVersion
+    || source.contractId !== rawBrief.contractId
+    || source.label !== rawBrief.label
+    || !coordinates
+    || coordinates.horizontalPlane !== rawBrief.coordinateSystem?.horizontalPlane
+    || coordinates.verticalAxis !== rawBrief.coordinateSystem?.verticalAxis
+    || coordinates.origin !== rawBrief.coordinateSystem?.origin
+    || coordinates.units !== rawBrief.units) {
+    throw new Error("Validation report source or coordinate system does not match the scene brief");
+  }
+  const checks = report.checks;
+  if (!Array.isArray(checks) || checks.length !== EXPECTED_CHECK_IDS.length) {
+    throw new Error("Validation report must contain exactly six canonical checks");
+  }
+  const checkIds = checks.map((check) => check?.checkId);
+  if (new Set(checkIds).size !== checkIds.length || checkIds.some((id, index) => id !== EXPECTED_CHECK_IDS[index])) {
+    throw new Error("Validation report checks must be unique and in canonical order");
+  }
+  const geometryIds = new Set();
+  checks.forEach((check) => {
+    if (!["pass", "fail"].includes(check.status) || !["error", "warning"].includes(check.severity)) {
+      throw new Error(`Validation check ${check.checkId} has an unsupported status or severity`);
+    }
+    if (!check.measured || typeof check.measured !== "object" || Array.isArray(check.measured)
+      || !check.required || typeof check.required !== "object" || Array.isArray(check.required)
+      || !Array.isArray(check.evidenceGeometry) || !Array.isArray(check.violationGeometry)) {
+      throw new Error(`Validation check ${check.checkId} has invalid structured values or geometry`);
+    }
+    if (check.status === "pass" && check.violationGeometry.length) {
+      throw new Error(`Passing check ${check.checkId} must not contain violation geometry`);
+    }
+    [...check.evidenceGeometry, ...check.violationGeometry].forEach((shape) => validateGeometry(shape, geometryIds));
+  });
+  const expectedSeatCapacity = (rawBrief.seats || []).filter((seat) => seat.countsTowardCapacity === true).length;
+  if (checks[5].measured.count !== expectedSeatCapacity) {
+    throw new Error("Validation report seat measurement does not match brief-derived capacity");
+  }
   const counts = {
+    total: checks.length,
     passed: checks.filter((check) => check.status === "pass").length,
-    failed: checks.filter((check) => check.status === "fail").length,
-    warnings: checks.filter((check) => check.status === "warning").length,
+    failedErrors: checks.filter((check) => check.status === "fail" && check.severity === "error").length,
+    failedWarnings: checks.filter((check) => check.status === "fail" && check.severity === "warning").length,
   };
-  const expectedStatus = counts.failed ? "fail" : counts.warnings ? "warning" : "pass";
-  const summary = report?.summary;
+  const summary = report.summary;
+  const expectedOverallStatus = counts.failedErrors > 0 ? "fail" : "pass";
   if (!summary
-    || summary.status !== expectedStatus
-    || summary.passed !== counts.passed
-    || summary.failed !== counts.failed
-    || summary.warnings !== counts.warnings) {
+    || !["pass", "fail"].includes(summary.overallStatus)
+    || summary.overallStatus !== expectedOverallStatus
+    || Object.entries(counts).some(([key, value]) => summary[key] !== value)) {
     throw new Error("Validation report summary does not match its checks");
   }
   return checks;
 }
 
-function geometryItems(report, expectedSeatCapacity) {
-  const checks = reportChecks(report, expectedSeatCapacity);
-  const items = [];
-  checks.forEach((check) => {
-    const geometry = check.violationGeometry || check.evidenceGeometry || check.geometry || [];
-    const list = Array.isArray(geometry) ? geometry : [geometry];
-    list.filter(Boolean).forEach((shape) => items.push({ shape, status: check.status || "pass", checkId: check.checkId || check.id }));
-  });
-  return items;
+function geometryItems(report, brief) {
+  const checks = validateValidationReport(report, brief);
+  return checks.flatMap((check) => [
+    ...check.evidenceGeometry.map((shape) => ({ shape, checkId: check.checkId, status: check.status, severity: check.severity, subset: "evidence" })),
+    ...check.violationGeometry.map((shape) => ({ shape, checkId: check.checkId, status: check.status, severity: check.severity, subset: "violation" })),
+  ]);
 }
 
-function statusColor(status) {
-  if (status === "fail" || status === "error") return FAIL;
-  if (status === "warning" || status === "warn") return WARNING;
-  return PASS;
+function statusColor(status, severity) {
+  if (status === "pass") return PASS;
+  return severity === "warning" ? WARNING : FAIL;
 }
 
-function xz(point) {
-  if (Array.isArray(point)) return [number(point[0], 0), number(point.length > 2 ? point[2] : point[1], 0)];
-  return [number(point?.x, 0), number(point?.z ?? point?.y, 0)];
+function vector3([x, z], height = 0.05) {
+  return new THREE.Vector3(x, height, z);
 }
 
 function overlayShape(parent, entry) {
-  const { shape, status, checkId } = entry;
-  const type = String(shape.type || shape.kind || "").toLowerCase();
-  const color = statusColor(status);
-  const fillMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: status === "pass" ? 0.18 : 0.28, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
+  const { shape, status, severity, checkId, subset } = entry;
+  const color = statusColor(status, severity);
+  const opacity = subset === "violation" ? 1 : status === "pass" ? 0.72 : 0.52;
+  const lineMaterial = new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false, depthTest: false, toneMapped: false });
+  const fillMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: subset === "violation" ? 0.28 : 0.14, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
   let object;
 
-  if (/circle|turn/.test(type) || shape.radius || shape.diameter) {
-    const [x, z] = xz(shape.center || shape.position || [shape.x, shape.z]);
-    const radius = number(shape.radius, number(shape.diameter, 1.5) / 2);
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(radius, 64), fillMaterial);
+  if (shape.type === "point") {
+    lineMaterial.dispose();
+    object = new THREE.Mesh(new THREE.SphereGeometry(subset === "violation" ? 0.1 : 0.075, 16, 12), fillMaterial);
+    object.position.copy(vector3(shape.point, 0.09));
+  } else if (shape.type === "circle") {
+    lineMaterial.dispose();
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(shape.radiusM, 64), fillMaterial);
     fill.rotation.x = -Math.PI / 2;
-    const ring = new THREE.Mesh(new THREE.RingGeometry(radius - 0.025, radius + 0.025, 64), fillMaterial.clone());
-    ring.material.opacity = 0.95;
+    const ringMaterial = fillMaterial.clone();
+    ringMaterial.opacity = opacity;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(Math.max(0.001, shape.radiusM - 0.025), shape.radiusM + 0.025, 64), ringMaterial);
     ring.rotation.x = -Math.PI / 2;
     object = new THREE.Group();
     object.add(fill, ring);
-    object.position.set(x, 0.035, z);
-  } else if (/box|rect|bbox/.test(type) || shape.bbox) {
-    const bounds = shape.bbox || shape;
-    const [x, z] = xz(shape.center || shape.position || [bounds.x, bounds.z]);
-    const width = number(bounds.w ?? bounds.width, 0.5);
-    const depth = number(bounds.d ?? bounds.depth ?? bounds.h, 0.5);
-    object = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), fillMaterial);
-    object.rotation.x = -Math.PI / 2;
-    object.position.set(x, 0.04, z);
+    object.position.copy(vector3(shape.center, 0.035));
   } else {
-    const source = shape.points || shape.path || shape.segment || [shape.start, shape.end].filter(Boolean);
-    const points = (source || []).map((point) => {
-      const [x, z] = xz(point);
-      return new THREE.Vector3(x, 0.05, z);
-    });
-    if (points.length < 2) {
-      fillMaterial.dispose();
-      return;
-    }
-    const curve = new THREE.CatmullRomCurve3(points, false, "centripetal", 0.2);
-    object = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(8, points.length * 12), 0.035, 8, false), fillMaterial);
+    const points = shape.type === "segment" ? [shape.from, shape.to] : shape.points;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points.map((point) => vector3(point)));
+    object = shape.type === "polygon" ? new THREE.LineLoop(geometry, lineMaterial) : new THREE.Line(geometry, lineMaterial);
+    fillMaterial.dispose();
   }
-  object.name = `validator_${checkId || type || "evidence"}`;
-  object.traverse((child) => { child.renderOrder = 1000; });
+  object.name = `validator_${checkId}_${shape.id}`;
+  object.traverse((child) => { child.renderOrder = subset === "violation" ? 1001 : 1000; });
   parent.add(object);
 }
 
@@ -563,7 +665,7 @@ export async function createStarterScene(options) {
     clearGroup(groups.lighting);
     buildShell(groups.shell, brief.shell, style);
     brief.objects.forEach((item) => groups[item.semanticGroup].add(createObject(item, style)));
-    geometryItems(report, brief.seatCapacity).forEach((entry) => overlayShape(validatorOverlay, entry));
+    geometryItems(report, brief).forEach((entry) => overlayShape(validatorOverlay, entry));
     groups.lighting.add(createLightingRig(THREE, presetId, lightingMode));
     const extent = Math.max(brief.shell.length, brief.shell.width);
     views.perspective = { position: new THREE.Vector3(extent * 0.88, extent * 0.70, extent * 0.92), target: new THREE.Vector3(0, 0.55, 0) };
@@ -572,7 +674,7 @@ export async function createStarterScene(options) {
     options.onStatus?.({
       brief: brief.raw,
       report,
-      checks: reportChecks(report, brief.seatCapacity),
+      checks: validateValidationReport(report, brief),
       overlayCount: validatorOverlay.children.length,
       seatCapacity: brief.seatCapacity,
     });

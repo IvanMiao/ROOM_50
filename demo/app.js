@@ -1,4 +1,4 @@
-import { createStarterScene, normalizeSceneBrief } from "../kit/starter-scene.js";
+import { createStarterScene, normalizeSceneBrief, validateValidationReport } from "../kit/starter-scene.js";
 import { versionedArchvizUrl } from "../kit/archviz-version.js";
 
 const SCENARIOS = {
@@ -48,23 +48,44 @@ function capacityFromBrief(brief) {
   return (brief?.seats || []).filter((seat) => seat.countsTowardCapacity === true).length;
 }
 
+function metres(value) {
+  return `${Number(value).toFixed(2)} m`;
+}
+
+function formatCheckValues(check) {
+  const { measured, required } = check;
+  switch (check.checkId) {
+    case "boundary":
+      return [`${measured.outsideObjectIds.length} outside · ${measured.intersections.length} intersections`, "0 outside · 0 intersections"];
+    case "routeWidth":
+      return [metres(measured.minimumClearWidthM), `≥ ${metres(required.minimumClearWidthM)}`];
+    case "turningZones":
+      return [`${measured.clearCount} / ${measured.requiredCount} clear`, `${required.locations.length} × Ø${metres(required.diameterM)}`];
+    case "counterHeight":
+      return [metres(measured.topHeightM), `≤ ${metres(required.maximumTopHeightM)}`];
+    case "kneeClearance":
+      return [metres(measured.clearHeightM), `≥ ${metres(required.minimumClearHeightM)} · collision-free`];
+    case "seatCount":
+      return [`${measured.count} capacity positions`, `${required.minimum}–${required.maximum}`];
+    default:
+      return ["—", "—"];
+  }
+}
+
 function renderStatus({ brief, report, checks, seatCapacity = capacityFromBrief(brief) }) {
-  validateReportSummary(report, checks, seatCapacity);
-  const failed = checks.filter((check) => check.status === "fail").length;
-  const warnings = checks.filter((check) => check.status === "warning").length;
-  const passed = checks.length - failed - warnings;
-  const overall = failed ? "fail" : warnings ? "warning" : "pass";
+  const overall = report.summary.overallStatus;
   ui.status.textContent = overall.toUpperCase();
   ui.status.className = `status-pill is-${overall}`;
   ui.runState.textContent = overall === "pass" ? "ALL CHECKS GREEN" : "FIX REQUIRED";
   ui.runState.closest(".run-state").className = `run-state is-${overall}`;
   ui.label.textContent = brief.label || "ROOM/50 scene";
-  ui.summary.textContent = `${passed} pass / ${failed} fail${warnings ? ` / ${warnings} warn` : ""}`;
+  ui.summary.textContent = `${report.summary.passed} pass / ${report.summary.failedErrors} error fail${report.summary.failedWarnings ? ` / ${report.summary.failedWarnings} warning fail` : ""}`;
   ui.seatDelta.textContent = `${seatCapacity} capacity positions · ${overall === "pass" ? "clearance wins" : "one fix required"}`;
   ui.list.replaceChildren(...checks.map((check) => {
     const row = document.createElement("article");
-    row.className = `check-row is-${check.status}`;
-    const mark = check.status === "pass" ? "✓" : check.status === "warning" ? "!" : "×";
+    const warningFailure = check.status === "fail" && check.severity === "warning";
+    row.className = `check-row is-${warningFailure ? "warning" : check.status}`;
+    const mark = check.status === "pass" ? "✓" : warningFailure ? "!" : "×";
     const markNode = document.createElement("span");
     markNode.className = "check-mark";
     markNode.textContent = mark;
@@ -72,13 +93,14 @@ function renderStatus({ brief, report, checks, seatCapacity = capacityFromBrief(
     const name = document.createElement("b");
     name.textContent = displayName(check.checkId || check.id);
     const measurement = document.createElement("small");
-    measurement.append(document.createTextNode(`${check.measured ?? "—"} `));
+    const [measured, required] = formatCheckValues(check);
+    measurement.append(document.createTextNode(`${measured} `));
     const requirement = document.createElement("i");
-    requirement.textContent = `/ ${check.required ?? "—"}`;
+    requirement.textContent = `/ ${required}`;
     measurement.append(requirement);
     detail.append(name, measurement);
     const status = document.createElement("em");
-    status.textContent = check.status;
+    status.textContent = warningFailure ? "warning" : check.status;
     row.append(markNode, detail, status);
     return row;
   }));
@@ -111,59 +133,13 @@ function setPoster(scenario) {
   if (fallbackImage) fallbackImage.src = scenario.poster;
 }
 
-function checksFromReport(report) {
-  const source = report?.checks || report?.results || report?.validationResults;
-  const checks = Array.isArray(source)
-    ? source
-    : source && typeof source === "object"
-      ? Object.entries(source).map(([checkId, check]) => ({ checkId, ...check }))
-      : [];
-  validateReportSummary(report, checks);
-  return checks;
-}
-
-function validateReportSummary(report, checks, expectedSeatCapacity) {
-  const allowedStatuses = new Set(["pass", "fail", "warning"]);
-  const checkIds = checks.map((check) => check.checkId || check.id);
-  if (!checks.length
-    || checkIds.some((id) => !id)
-    || new Set(checkIds).size !== checkIds.length
-    || checks.some((check) => !allowedStatuses.has(check.status))) {
-    throw new Error("Validation report checks are missing or invalid");
-  }
-  const expectedCheckIds = ["routeWidth", "turningZones", "counterHeight", "kneeClearance", "seatCount"];
-  if (checks.length !== expectedCheckIds.length || expectedCheckIds.some((id) => !checkIds.includes(id))) {
-    throw new Error("Validation report must contain the complete canonical check set");
-  }
-  if (expectedSeatCapacity !== undefined) {
-    const seatCheck = checks.find((check) => (check.checkId || check.id) === "seatCount");
-    if (!seatCheck || Number(seatCheck.measured) !== expectedSeatCapacity) {
-      throw new Error("Validation report seat measurement does not match brief-derived capacity");
-    }
-  }
-  const counts = {
-    passed: checks.filter((check) => check.status === "pass").length,
-    failed: checks.filter((check) => check.status === "fail").length,
-    warnings: checks.filter((check) => check.status === "warning").length,
-  };
-  const expectedStatus = counts.failed ? "fail" : counts.warnings ? "warning" : "pass";
-  const summary = report?.summary;
-  if (!summary
-    || summary.status !== expectedStatus
-    || summary.passed !== counts.passed
-    || summary.failed !== counts.failed
-    || summary.warnings !== counts.warnings) {
-    throw new Error("Validation report summary does not match its checks");
-  }
-}
-
 async function renderScenarioData(scenario, revision = null) {
   const [briefResponse, reportResponse] = await Promise.all([fetch(scenario.brief), fetch(scenario.report)]);
   if (!briefResponse.ok || !reportResponse.ok) throw new Error("Scenario fixtures could not be loaded");
   const [brief, report] = await Promise.all([briefResponse.json(), reportResponse.json()]);
   if (revision !== null && revision !== scenarioRevision) return false;
   const normalizedBrief = normalizeSceneBrief(brief);
-  renderStatus({ brief, report, checks: checksFromReport(report), seatCapacity: normalizedBrief.seatCapacity });
+  renderStatus({ brief, report, checks: validateValidationReport(report, normalizedBrief), seatCapacity: normalizedBrief.seatCapacity });
   return true;
 }
 

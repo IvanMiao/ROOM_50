@@ -14,7 +14,7 @@
   },
   "observations": [
     "The reference shell is represented as a rectangular 10 by 5 metre café.",
-    "Table B3 is moved 0.55 metres east and its route-side chair is removed, producing a measured 1.24 metre continuous route.",
+    "Table B3 is moved 0.55 metres east and its route-side chair is removed to improve the declared continuous-route corridor.",
     "The service counter includes a lowered segment and the accessible table includes an empty wheelchair position."
   ],
   "userIntent": [
@@ -27,7 +27,7 @@
     "Structure, fire strategy, plumbing, drainage, ventilation, lighting calculations and local approvals are outside this geometry brief.",
     "The validator report, not this presentation brief or its ArchViz GLB, is the only source of pass or fail evidence."
   ],
-  "decision": "Move table B3 0.55 metres east and remove the route-side chair; clear width rises from 1.05 to 1.24 metres while capacity remains within range.",
+  "decision": "Move table B3 0.55 metres east and remove the route-side chair; the validator report owns the resulting clearance measurement.",
   "shell": {
     "shape": "rectangle",
     "lengthM": 10,
@@ -42,7 +42,8 @@
       "semanticGroup": "architecture",
       "position": [-3.8, -0.35],
       "rotation": 0,
-      "bbox": { "w": 2.3, "d": 0.1, "h": 2.6 }
+      "bbox": { "w": 2.3, "d": 0.1, "h": 2.6 },
+      "collision": { "obstacle": true, "allowOverlapWith": ["wc-partition-side"] }
     },
     {
       "id": "wc-partition-side",
@@ -50,7 +51,8 @@
       "semanticGroup": "architecture",
       "position": [-2.7, -1.4],
       "rotation": 0,
-      "bbox": { "w": 0.1, "d": 2.2, "h": 2.6 }
+      "bbox": { "w": 0.1, "d": 2.2, "h": 2.6 },
+      "collision": { "obstacle": true, "allowOverlapWith": ["wc-partition-front"] }
     },
     {
       "id": "wc-fixture",
@@ -58,7 +60,8 @@
       "semanticGroup": "service",
       "position": [-4.25, -1.75],
       "rotation": 0,
-      "bbox": { "w": 0.65, "d": 0.75, "h": 0.48 }
+      "bbox": { "w": 0.65, "d": 0.75, "h": 0.48 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "back-bar",
@@ -66,7 +69,8 @@
       "semanticGroup": "service",
       "position": [2.9, -2.12],
       "rotation": 0,
-      "bbox": { "w": 3.8, "d": 0.58, "h": 0.92 }
+      "bbox": { "w": 3.8, "d": 0.58, "h": 0.92 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "service-counter",
@@ -74,7 +78,8 @@
       "semanticGroup": "service",
       "position": [3.25, -0.9],
       "rotation": 0,
-      "bbox": { "w": 3.1, "d": 0.72, "h": 0.92 }
+      "bbox": { "w": 3.1, "d": 0.72, "h": 0.92 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "lowered-counter",
@@ -82,7 +87,8 @@
       "semanticGroup": "service",
       "position": [1.25, -0.9],
       "rotation": 0,
-      "bbox": { "w": 0.9, "d": 0.72, "h": 0.76 }
+      "bbox": { "w": 0.9, "d": 0.72, "h": 0.76 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "accessible-table",
@@ -90,7 +96,8 @@
       "semanticGroup": "furniture",
       "position": [-0.55, 1.35],
       "rotation": 0,
-      "bbox": { "w": 0.9, "d": 0.9, "h": 0.74 }
+      "bbox": { "w": 0.9, "d": 0.9, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "accessible-companion",
@@ -98,7 +105,8 @@
       "semanticGroup": "furniture",
       "position": [0.18, 1.35],
       "rotation": 3.141592653589793,
-      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 }
+      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "table-b2",
@@ -106,7 +114,8 @@
       "semanticGroup": "furniture",
       "position": [2.45, 1.5],
       "rotation": 0,
-      "bbox": { "w": 0.85, "d": 0.85, "h": 0.74 }
+      "bbox": { "w": 0.85, "d": 0.85, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "b2-seat-a",
@@ -114,7 +123,8 @@
       "semanticGroup": "furniture",
       "position": [1.78, 1.5],
       "rotation": 1.5707963267948966,
-      "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 }
+      "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "b2-seat-b",
@@ -122,7 +132,8 @@
       "semanticGroup": "furniture",
       "position": [3.12, 1.5],
       "rotation": -1.5707963267948966,
-      "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 }
+      "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "table-b3",
@@ -130,7 +141,8 @@
       "semanticGroup": "furniture",
       "position": [0.73, 0.02],
       "rotation": 0,
-      "bbox": { "w": 0.92, "d": 0.92, "h": 0.74 }
+      "bbox": { "w": 0.92, "d": 0.92, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "b3-seat-wall",
@@ -138,7 +150,8 @@
       "semanticGroup": "furniture",
       "position": [1.41, 0.02],
       "rotation": -1.5707963267948966,
-      "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 }
+      "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "window-bench",
@@ -146,7 +159,8 @@
       "semanticGroup": "furniture",
       "position": [3.9, 2.1],
       "rotation": 0,
-      "bbox": { "w": 1.8, "d": 0.55, "h": 0.5 }
+      "bbox": { "w": 1.8, "d": 0.55, "h": 0.5 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bench-table",
@@ -154,7 +168,8 @@
       "semanticGroup": "furniture",
       "position": [3.9, 1.3],
       "rotation": 0,
-      "bbox": { "w": 0.9, "d": 0.65, "h": 0.74 }
+      "bbox": { "w": 0.9, "d": 0.65, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bench-chair-a",
@@ -162,7 +177,8 @@
       "semanticGroup": "furniture",
       "position": [3.35, 0.75],
       "rotation": 0,
-      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 }
+      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bench-chair-b",
@@ -170,7 +186,8 @@
       "semanticGroup": "furniture",
       "position": [4.45, 0.75],
       "rotation": 0,
-      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 }
+      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bar-stool-a",
@@ -178,7 +195,8 @@
       "semanticGroup": "furniture",
       "position": [1.95, -0.12],
       "rotation": 0,
-      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 }
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bar-stool-b",
@@ -186,7 +204,8 @@
       "semanticGroup": "furniture",
       "position": [2.7, -0.12],
       "rotation": 0,
-      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 }
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bar-stool-c",
@@ -194,7 +213,8 @@
       "semanticGroup": "furniture",
       "position": [3.45, -0.12],
       "rotation": 0,
-      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 }
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "bar-stool-d",
@@ -202,7 +222,8 @@
       "semanticGroup": "furniture",
       "position": [4.2, -0.12],
       "rotation": 0,
-      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 }
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     },
     {
       "id": "entry-plant",
@@ -210,7 +231,8 @@
       "semanticGroup": "furniture",
       "position": [-4.45, 2.05],
       "rotation": 0,
-      "bbox": { "w": 0.6, "d": 0.6, "h": 1.15 }
+      "bbox": { "w": 0.6, "d": 0.6, "h": 1.15 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
     }
   ],
   "seats": [
@@ -336,16 +358,16 @@
         [-0.42, 0.05],
         [1.05, -0.45],
         [1.55, -0.32],
-        [0.3, 0.9],
+        [-0.55, 2.02],
         [-1.85, -0.08],
         [-3.5, -0.65]
       ],
       "stops": [
-        { "stage": "entrance", "pointIndex": 0 },
-        { "stage": "ordering", "pointIndex": 4 },
-        { "stage": "pick-up", "pointIndex": 5 },
-        { "stage": "accessible-seat", "pointIndex": 6 },
-        { "stage": "accessible-wc", "pointIndex": 8 }
+        { "stage": "entrance", "pointIndex": 0, "target": { "collection": "doors", "id": "door-entrance" } },
+        { "stage": "ordering", "pointIndex": 4, "target": { "collection": "objects", "id": "lowered-counter" } },
+        { "stage": "pick-up", "pointIndex": 5, "target": { "collection": "objects", "id": "service-counter" } },
+        { "stage": "accessible-seat", "pointIndex": 6, "target": { "collection": "seats", "id": "seat-accessible-wheelchair" } },
+        { "stage": "accessible-wc", "pointIndex": 8, "target": { "collection": "doors", "id": "door-accessible-wc" } }
       ]
     },
     "turningZones": [
