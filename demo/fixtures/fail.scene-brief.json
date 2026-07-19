@@ -1,27 +1,429 @@
 {
-  "schemaVersion": "1.0.0-demo",
+  "schemaVersion": "1.0.0",
+  "contractId": "room50-accessible-cafe-v1",
   "label": "Before — B3 blocks the route",
-  "shell": { "lengthM": 10, "widthM": 5, "clearHeightM": 3.2 },
-  "seatCount": 15,
+  "status": "concept-demo-not-for-construction",
+  "units": "metres",
+  "coordinateSystem": {
+    "horizontalPlane": "xz",
+    "verticalAxis": "y-up",
+    "origin": "shell-centre-at-finished-floor",
+    "rotationUnit": "radians",
+    "rotationAxis": "y",
+    "rotationRule": "right-hand-rule"
+  },
+  "observations": [
+    "The reference shell is represented as a rectangular 10 by 5 metre café.",
+    "Table B3 and its route-side chair visibly constrict the declared continuous-route corridor.",
+    "The service counter includes a lowered segment and the accessible table includes an empty wheelchair position."
+  ],
+  "userIntent": [
+    "Provide a warm compact café with 14 to 18 capacity positions.",
+    "Maintain a continuous step-free journey from entrance to ordering, pick-up, accessible seating and accessible WC.",
+    "Make accessibility evidence legible without treating the presentation model as validation truth."
+  ],
+  "assumptions": [
+    "Dimensions describe a concept demo and require site verification before construction.",
+    "Structure, fire strategy, plumbing, drainage, ventilation, lighting calculations and local approvals are outside this geometry brief.",
+    "The validator report, not this presentation brief or its ArchViz GLB, is the only source of pass or fail evidence."
+  ],
+  "decision": "Retain the obstructed B3 baseline for validator comparison without claiming a measured route width in the scene brief.",
+  "shell": {
+    "shape": "rectangle",
+    "lengthM": 10,
+    "widthM": 5,
+    "clearHeightM": 3.2,
+    "grossAreaM2": 50
+  },
   "objects": [
-    { "id": "wc-partition-front", "semanticTag": "partition", "position": [-3.8, -0.35], "rotation": 0, "bbox": { "w": 2.3, "d": 0.1, "h": 2.6 } },
-    { "id": "wc-partition-side", "semanticTag": "partition", "position": [-2.7, -1.4], "rotation": 0, "bbox": { "w": 0.1, "d": 2.2, "h": 2.6 } },
-    { "id": "wc-fixture", "semanticTag": "toilet", "position": [-4.25, -1.75], "rotation": 0, "bbox": { "w": 0.65, "d": 0.75, "h": 0.48 } },
-    { "id": "back-bar", "semanticTag": "back-bar", "position": [2.9, -2.12], "rotation": 0, "bbox": { "w": 3.8, "d": 0.58, "h": 0.92 } },
-    { "id": "service-counter", "semanticTag": "service-counter", "position": [3.25, -0.9], "rotation": 0, "bbox": { "w": 3.1, "d": 0.72, "h": 0.92 } },
-    { "id": "lowered-counter", "semanticTag": "lowered-counter", "position": [1.25, -0.9], "rotation": 0, "bbox": { "w": 0.9, "d": 0.72, "h": 0.76 } },
-    { "id": "accessible-table", "semanticTag": "accessible-table", "position": [-0.55, 1.35], "rotation": 0, "bbox": { "w": 0.9, "d": 0.9, "h": 0.74 } },
-    { "id": "accessible-companion", "semanticTag": "chair", "position": [0.18, 1.35], "rotation": 3.14, "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 } },
-    { "id": "table-b2", "semanticTag": "round-table", "position": [2.45, 1.5], "rotation": 0, "bbox": { "w": 0.85, "d": 0.85, "h": 0.74 } },
-    { "id": "b2-seat-a", "semanticTag": "chair", "position": [1.78, 1.5], "rotation": 1.57, "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 } },
-    { "id": "b2-seat-b", "semanticTag": "chair", "position": [3.12, 1.5], "rotation": -1.57, "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 } },
-    { "id": "table-b3", "semanticTag": "round-table", "position": [0.18, 0.02], "rotation": 0, "bbox": { "w": 0.92, "d": 0.92, "h": 0.74 } },
-    { "id": "b3-seat-route", "semanticTag": "chair", "position": [-0.5, 0.02], "rotation": 1.57, "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 } },
-    { "id": "b3-seat-wall", "semanticTag": "chair", "position": [0.86, 0.02], "rotation": -1.57, "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 } },
-    { "id": "window-bench", "semanticTag": "bench-seat", "position": [3.9, 2.1], "rotation": 0, "bbox": { "w": 1.8, "d": 0.55, "h": 0.5 } },
-    { "id": "bench-table", "semanticTag": "table", "position": [3.9, 1.3], "rotation": 0, "bbox": { "w": 0.9, "d": 0.65, "h": 0.74 } },
-    { "id": "bench-chair-a", "semanticTag": "chair", "position": [3.35, 0.75], "rotation": 0, "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 } },
-    { "id": "bench-chair-b", "semanticTag": "chair", "position": [4.45, 0.75], "rotation": 0, "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 } },
-    { "id": "entry-plant", "semanticTag": "plant", "position": [-4.45, 2.05], "rotation": 0, "bbox": { "w": 0.6, "d": 0.6, "h": 1.15 } }
-  ]
+    {
+      "id": "wc-partition-front",
+      "semanticTag": "partition",
+      "semanticGroup": "architecture",
+      "position": [-3.8, -0.35],
+      "rotation": 0,
+      "bbox": { "w": 2.3, "d": 0.1, "h": 2.6 },
+      "collision": { "obstacle": true, "allowOverlapWith": ["wc-partition-side"] }
+    },
+    {
+      "id": "wc-partition-side",
+      "semanticTag": "partition",
+      "semanticGroup": "architecture",
+      "position": [-2.7, -1.4],
+      "rotation": 0,
+      "bbox": { "w": 0.1, "d": 2.2, "h": 2.6 },
+      "collision": { "obstacle": true, "allowOverlapWith": ["wc-partition-front"] }
+    },
+    {
+      "id": "wc-fixture",
+      "semanticTag": "toilet",
+      "semanticGroup": "service",
+      "position": [-4.25, -1.75],
+      "rotation": 0,
+      "bbox": { "w": 0.65, "d": 0.75, "h": 0.48 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "back-bar",
+      "semanticTag": "back-bar",
+      "semanticGroup": "service",
+      "position": [2.9, -2.12],
+      "rotation": 0,
+      "bbox": { "w": 3.8, "d": 0.58, "h": 0.92 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "service-counter",
+      "semanticTag": "service-counter",
+      "semanticGroup": "service",
+      "position": [3.25, -0.9],
+      "rotation": 0,
+      "bbox": { "w": 3.1, "d": 0.72, "h": 0.92 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "lowered-counter",
+      "semanticTag": "lowered-counter",
+      "semanticGroup": "service",
+      "position": [1.25, -0.9],
+      "rotation": 0,
+      "bbox": { "w": 0.9, "d": 0.72, "h": 0.76 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "accessible-table",
+      "semanticTag": "accessible-table",
+      "semanticGroup": "furniture",
+      "position": [-0.55, 1.35],
+      "rotation": 0,
+      "bbox": { "w": 0.9, "d": 0.9, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "accessible-companion",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [0.18, 1.35],
+      "rotation": 3.141592653589793,
+      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "table-b2",
+      "semanticTag": "round-table",
+      "semanticGroup": "furniture",
+      "position": [2.45, 1.5],
+      "rotation": 0,
+      "bbox": { "w": 0.85, "d": 0.85, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "b2-seat-a",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [1.78, 1.5],
+      "rotation": 1.5707963267948966,
+      "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "b2-seat-b",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [3.12, 1.5],
+      "rotation": -1.5707963267948966,
+      "bbox": { "w": 0.44, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "table-b3",
+      "semanticTag": "round-table",
+      "semanticGroup": "furniture",
+      "position": [0.18, 0.02],
+      "rotation": 0,
+      "bbox": { "w": 0.92, "d": 0.92, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "b3-seat-route",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [-0.5, 0.02],
+      "rotation": 1.5707963267948966,
+      "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "b3-seat-wall",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [0.86, 0.02],
+      "rotation": -1.5707963267948966,
+      "bbox": { "w": 0.46, "d": 0.52, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "window-bench",
+      "semanticTag": "bench-seat",
+      "semanticGroup": "furniture",
+      "position": [3.9, 2.1],
+      "rotation": 0,
+      "bbox": { "w": 1.8, "d": 0.55, "h": 0.5 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bench-table",
+      "semanticTag": "table",
+      "semanticGroup": "furniture",
+      "position": [3.9, 1.3],
+      "rotation": 0,
+      "bbox": { "w": 0.9, "d": 0.65, "h": 0.74 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bench-chair-a",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [3.35, 0.75],
+      "rotation": 0,
+      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bench-chair-b",
+      "semanticTag": "chair",
+      "semanticGroup": "furniture",
+      "position": [4.45, 0.75],
+      "rotation": 0,
+      "bbox": { "w": 0.46, "d": 0.5, "h": 0.82 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bar-stool-a",
+      "semanticTag": "stool",
+      "semanticGroup": "furniture",
+      "position": [1.95, -0.12],
+      "rotation": 0,
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bar-stool-b",
+      "semanticTag": "stool",
+      "semanticGroup": "furniture",
+      "position": [2.7, -0.12],
+      "rotation": 0,
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bar-stool-c",
+      "semanticTag": "stool",
+      "semanticGroup": "furniture",
+      "position": [3.45, -0.12],
+      "rotation": 0,
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "bar-stool-d",
+      "semanticTag": "stool",
+      "semanticGroup": "furniture",
+      "position": [4.2, -0.12],
+      "rotation": 0,
+      "bbox": { "w": 0.38, "d": 0.38, "h": 0.72 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    },
+    {
+      "id": "entry-plant",
+      "semanticTag": "plant",
+      "semanticGroup": "furniture",
+      "position": [-4.45, 2.05],
+      "rotation": 0,
+      "bbox": { "w": 0.6, "d": 0.6, "h": 1.15 },
+      "collision": { "obstacle": true, "allowOverlapWith": [] }
+    }
+  ],
+  "seats": [
+    {
+      "id": "seat-accessible-wheelchair",
+      "kind": "wheelchair-position",
+      "position": [-0.55, 2.02],
+      "countsTowardCapacity": true,
+      "accessible": true
+    },
+    {
+      "id": "seat-accessible-companion",
+      "kind": "chair",
+      "position": [0.18, 1.35],
+      "objectId": "accessible-companion",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-b2-a",
+      "kind": "chair",
+      "position": [1.78, 1.5],
+      "objectId": "b2-seat-a",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-b2-b",
+      "kind": "chair",
+      "position": [3.12, 1.5],
+      "objectId": "b2-seat-b",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-b3-route",
+      "kind": "chair",
+      "position": [-0.5, 0.02],
+      "objectId": "b3-seat-route",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-b3-wall",
+      "kind": "chair",
+      "position": [0.86, 0.02],
+      "objectId": "b3-seat-wall",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bench-chair-a",
+      "kind": "chair",
+      "position": [3.35, 0.75],
+      "objectId": "bench-chair-a",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bench-chair-b",
+      "kind": "chair",
+      "position": [4.45, 0.75],
+      "objectId": "bench-chair-b",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bar-a",
+      "kind": "stool",
+      "position": [1.95, -0.12],
+      "objectId": "bar-stool-a",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bar-b",
+      "kind": "stool",
+      "position": [2.7, -0.12],
+      "objectId": "bar-stool-b",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bar-c",
+      "kind": "stool",
+      "position": [3.45, -0.12],
+      "objectId": "bar-stool-c",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bar-d",
+      "kind": "stool",
+      "position": [4.2, -0.12],
+      "objectId": "bar-stool-d",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bench-a",
+      "kind": "bench-position",
+      "position": [3.35, 2.1],
+      "objectId": "window-bench",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bench-b",
+      "kind": "bench-position",
+      "position": [3.9, 2.1],
+      "objectId": "window-bench",
+      "countsTowardCapacity": true,
+      "accessible": false
+    },
+    {
+      "id": "seat-bench-c",
+      "kind": "bench-position",
+      "position": [4.45, 2.1],
+      "objectId": "window-bench",
+      "countsTowardCapacity": true,
+      "accessible": false
+    }
+  ],
+  "accessibility": {
+    "route": {
+      "minimumClearWidthM": 1.2,
+      "centerline": [
+        [-3.3, 2.35],
+        [-3.25, 1.25],
+        [-1.7, 0.65],
+        [-0.42, 0.05],
+        [1.05, -0.45],
+        [1.55, -0.32],
+        [-0.55, 2.02],
+        [-1.85, -0.08],
+        [-3.5, -0.65]
+      ],
+      "stops": [
+        { "stage": "entrance", "pointIndex": 0, "target": { "collection": "doors", "id": "door-entrance" } },
+        { "stage": "ordering", "pointIndex": 4, "target": { "collection": "objects", "id": "lowered-counter" } },
+        { "stage": "pick-up", "pointIndex": 5, "target": { "collection": "objects", "id": "service-counter" } },
+        { "stage": "accessible-seat", "pointIndex": 6, "target": { "collection": "seats", "id": "seat-accessible-wheelchair" } },
+        { "stage": "accessible-wc", "pointIndex": 8, "target": { "collection": "doors", "id": "door-accessible-wc" } }
+      ]
+    },
+    "turningZones": [
+      { "id": "turning-entrance", "at": "entrance", "center": [-3.3, 1.55], "diameterM": 1.5 },
+      { "id": "turning-service", "at": "service-counter", "center": [0.45, -0.45], "diameterM": 1.5 },
+      { "id": "turning-wc", "at": "accessible-wc", "center": [-3.75, -1.45], "diameterM": 1.5 }
+    ],
+    "doors": [
+      {
+        "id": "door-entrance",
+        "at": "entrance",
+        "position": [-3.3, 2.5],
+        "rotation": 0,
+        "clearWidthM": 1,
+        "stepFree": true
+      },
+      {
+        "id": "door-accessible-wc",
+        "at": "accessible-wc",
+        "position": [-3.55, -0.35],
+        "rotation": 0,
+        "clearWidthM": 0.9,
+        "stepFree": true
+      }
+    ],
+    "serviceCounter": {
+      "counterObjectId": "service-counter",
+      "loweredSegmentObjectId": "lowered-counter",
+      "maximumLoweredHeightM": 0.76
+    },
+    "accessibleTable": {
+      "tableObjectId": "accessible-table",
+      "wheelchairSeatId": "seat-accessible-wheelchair",
+      "minimumKneeClearHeightM": 0.7,
+      "kneeClearanceVolume": {
+        "position": [-0.55, 1.52],
+        "rotation": 0,
+        "bbox": { "w": 0.76, "d": 0.55, "h": 0.71 }
+      }
+    }
+  }
 }

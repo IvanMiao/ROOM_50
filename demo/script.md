@@ -3,7 +3,7 @@
 ## Setup (before going on stage)
 
 - Open the deployed ROOM/50 home page in tab 1 and `/demo/` in tab 2.
-- Keep the demo on **Before / Evidence / Hearth / Day**.
+- Keep the demo on **Before / Evidence / Day**.
 - Keep the real `validation-report.json` open in a text editor as a fallback.
 - Attach the same reference image to Codex if Codex cannot inspect the browser-local upload.
 - Have `demo/screenshots/fail.png` and `demo/screenshots/pass.png` ready if WebGL or network access fails.
@@ -24,7 +24,7 @@ Paste the prompt into Codex. Show the brief being produced and the loop:
 
 ```text
 build scene-brief.json
-→ npm run validate -- scene-brief.json
+→ run the geometry validator
 → read validation-report.json
 → repair geometry
 → validate again
@@ -67,13 +67,13 @@ This is the “soul shot”: keep the Before/After controls and the green eviden
 
 ## 2:50–3:20 — Visual floor, not visual distraction
 
-Switch palettes once, then toggle **Night light**.
+Toggle **Night light** once, then return to Day.
 
 Say:
 
-> The renderer supplies two restrained material systems, procedural wood, linen and clay, plus day and night light rigs. Presentation is reusable; evidence stays independent and toggleable.
+> The ArchViz GLB raises the visual floor, while the day and night rigs let us inspect it under different lighting. If that asset cannot load, the procedural fallback exposes two restrained palettes. In both modes, evidence stays independent and comes from the report.
 
-Return to Day / Hearth for the final frame.
+Return to Day for the final frame.
 
 ## 3:20–3:30 — Close
 
@@ -91,7 +91,7 @@ Record one clean 1920 × 1080 take with this shot order:
 2. Terminal/Codex build and first validator fail — 35 s.
 3. `/demo/#fail` Evidence view, then Top — 25 s.
 4. Before → After transition and the 15 → 14 seat trade-off — 30 s.
-5. Palette + night light — 15 s.
+5. Day → night → day lighting check — 15 s.
 6. Final green report + deployed URL — 10 s.
 
 If the live Codex run is slow, cut from the generated prompt directly to the fail fixture. State that the two fixture files reproduce the same validator interface and do not represent a hidden success claim.

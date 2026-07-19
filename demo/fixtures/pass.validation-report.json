@@ -1,21 +1,379 @@
 {
-  "summary": { "status": "pass", "passed": 5, "failed": 0, "warnings": 0 },
+  "reportVersion": "1.0.0",
+  "validatorVersion": "0.1.0",
+  "generatedAt": "2026-07-18T12:01:00.000Z",
+  "source": {
+    "sceneBriefSchemaVersion": "1.0.0",
+    "contractId": "room50-accessible-cafe-v1",
+    "label": "After — clearance wins"
+  },
+  "coordinateSystem": {
+    "horizontalPlane": "xz",
+    "verticalAxis": "y-up",
+    "origin": "shell-centre-at-finished-floor",
+    "units": "metres"
+  },
+  "summary": {
+    "overallStatus": "pass",
+    "total": 6,
+    "passed": 6,
+    "failedErrors": 0,
+    "failedWarnings": 0
+  },
   "checks": [
     {
-      "checkId": "routeWidth", "status": "pass", "measured": "1.24 m", "required": ">= 1.20 m",
-      "message": "Continuous route clears after moving B3 and removing one chair.",
-      "evidenceGeometry": [{ "type": "polyline", "points": [[-3.3, 2.35], [-3.25, 1.25], [-1.7, 0.65], [-0.42, 0.05], [1.05, -0.45], [0.3, 0.9], [-1.85, -0.08], [-3.5, -0.65]] }]
+      "checkId": "boundary",
+      "status": "pass",
+      "severity": "error",
+      "message": "All modeled objects are inside the shell with no unintended intersections.",
+      "measured": {
+        "outsideObjectIds": [],
+        "intersections": []
+      },
+      "required": {
+        "shellLengthM": 10,
+        "shellWidthM": 5,
+        "outsideObjectCount": 0,
+        "unintendedIntersectionCount": 0
+      },
+      "evidenceGeometry": [
+        {
+          "id": "boundary-shell-footprint",
+          "type": "polygon",
+          "points": [
+            [
+              -5,
+              -2.5
+            ],
+            [
+              5,
+              -2.5
+            ],
+            [
+              5,
+              2.5
+            ],
+            [
+              -5,
+              2.5
+            ]
+          ],
+          "label": "Validated shell boundary"
+        }
+      ],
+      "violationGeometry": []
     },
     {
-      "checkId": "turningZones", "status": "pass", "measured": "3 clear", "required": "3 × Ø1.50 m",
+      "checkId": "routeWidth",
+      "status": "pass",
+      "severity": "error",
+      "message": "The continuous route has a measured minimum clear width of 1.24 m.",
+      "measured": {
+        "minimumClearWidthM": 1.24,
+        "bottleneck": [
+          -0.42,
+          0.05
+        ],
+        "routeConnected": true,
+        "allStopsConnected": true,
+        "toleranceM": 0.05,
+        "conflictingObjectIds": [],
+        "stops": [
+          {
+            "stage": "entrance",
+            "pointIndex": 0,
+            "point": [
+              -3.3,
+              2.35
+            ],
+            "target": {
+              "collection": "doors",
+              "id": "door-entrance"
+            },
+            "distanceM": 0.15,
+            "connected": true
+          },
+          {
+            "stage": "ordering",
+            "pointIndex": 4,
+            "point": [
+              1.05,
+              -0.45
+            ],
+            "target": {
+              "collection": "objects",
+              "id": "lowered-counter"
+            },
+            "distanceM": 0.09,
+            "connected": true
+          },
+          {
+            "stage": "pick-up",
+            "pointIndex": 5,
+            "point": [
+              1.55,
+              -0.32
+            ],
+            "target": {
+              "collection": "objects",
+              "id": "service-counter"
+            },
+            "distanceM": 0.27,
+            "connected": true
+          },
+          {
+            "stage": "accessible-seat",
+            "pointIndex": 6,
+            "point": [
+              -0.55,
+              2.02
+            ],
+            "target": {
+              "collection": "seats",
+              "id": "seat-accessible-wheelchair"
+            },
+            "distanceM": 0,
+            "connected": true
+          },
+          {
+            "stage": "accessible-wc",
+            "pointIndex": 8,
+            "point": [
+              -3.5,
+              -0.65
+            ],
+            "target": {
+              "collection": "doors",
+              "id": "door-accessible-wc"
+            },
+            "distanceM": 0.3,
+            "connected": true
+          }
+        ]
+      },
+      "required": {
+        "minimumClearWidthM": 1.2,
+        "maximumStopDistanceM": 0.6,
+        "allStopsConnected": true,
+        "requiredStages": [
+          "entrance",
+          "ordering",
+          "pick-up",
+          "accessible-seat",
+          "accessible-wc"
+        ]
+      },
       "evidenceGeometry": [
-        { "type": "circle", "center": [-3.3, 1.55], "diameter": 1.5 },
-        { "type": "circle", "center": [0.45, -0.45], "diameter": 1.5 },
-        { "type": "circle", "center": [-3.75, -1.45], "diameter": 1.5 }
-      ]
+        {
+          "id": "route-centerline",
+          "type": "polyline",
+          "points": [
+            [
+              -3.3,
+              2.35
+            ],
+            [
+              -3.25,
+              1.25
+            ],
+            [
+              -1.7,
+              0.65
+            ],
+            [
+              -0.42,
+              0.05
+            ],
+            [
+              1.05,
+              -0.45
+            ],
+            [
+              1.55,
+              -0.32
+            ],
+            [
+              -0.55,
+              2.02
+            ],
+            [
+              -1.85,
+              -0.08
+            ],
+            [
+              -3.5,
+              -0.65
+            ]
+          ],
+          "label": "Validated route centerline"
+        }
+      ],
+      "violationGeometry": []
     },
-    { "checkId": "counterHeight", "status": "pass", "measured": "0.76 m", "required": "<= 0.76 m", "violationGeometry": [] },
-    { "checkId": "kneeClearance", "status": "pass", "measured": "0.71 m", "required": ">= 0.70 m", "violationGeometry": [] },
-    { "checkId": "seatCount", "status": "pass", "measured": 14, "required": "14–18", "violationGeometry": [] }
+    {
+      "checkId": "turningZones",
+      "status": "pass",
+      "severity": "error",
+      "message": "All 3 required turning zones have 1.5 m collision-free diameter.",
+      "measured": {
+        "clearCount": 3,
+        "requiredCount": 3,
+        "zones": [
+          {
+            "id": "turning-entrance",
+            "at": "entrance",
+            "diameterM": 1.5,
+            "clear": true,
+            "conflictingObjectIds": []
+          },
+          {
+            "id": "turning-service",
+            "at": "service-counter",
+            "diameterM": 1.5,
+            "clear": true,
+            "conflictingObjectIds": []
+          },
+          {
+            "id": "turning-wc",
+            "at": "accessible-wc",
+            "diameterM": 1.5,
+            "clear": true,
+            "conflictingObjectIds": []
+          }
+        ]
+      },
+      "required": {
+        "diameterM": 1.5,
+        "locations": [
+          "entrance",
+          "service-counter",
+          "accessible-wc"
+        ]
+      },
+      "evidenceGeometry": [
+        {
+          "id": "turn-entry-circle",
+          "type": "circle",
+          "center": [
+            -3.3,
+            1.55
+          ],
+          "radiusM": 0.75,
+          "label": "Entrance turning zone"
+        },
+        {
+          "id": "turn-service-circle",
+          "type": "circle",
+          "center": [
+            0.45,
+            -0.45
+          ],
+          "radiusM": 0.75,
+          "label": "Service turning zone"
+        },
+        {
+          "id": "turn-wc-circle",
+          "type": "circle",
+          "center": [
+            -3.75,
+            -1.45
+          ],
+          "radiusM": 0.75,
+          "label": "Accessible WC turning zone"
+        }
+      ],
+      "violationGeometry": []
+    },
+    {
+      "checkId": "counterHeight",
+      "status": "pass",
+      "severity": "error",
+      "message": "The lowered counter top is 0.76 m above finished floor.",
+      "measured": {
+        "objectId": "lowered-counter",
+        "topHeightM": 0.76
+      },
+      "required": {
+        "maximumTopHeightM": 0.76
+      },
+      "evidenceGeometry": [
+        {
+          "id": "counter-measurement-point",
+          "type": "point",
+          "point": [
+            1.25,
+            -0.9
+          ],
+          "objectIds": [
+            "lowered-counter"
+          ],
+          "label": "Lowered counter measurement"
+        }
+      ],
+      "violationGeometry": []
+    },
+    {
+      "checkId": "kneeClearance",
+      "status": "pass",
+      "severity": "error",
+      "message": "The accessible table provides 0.71 m clear height with a collision-free knee volume.",
+      "measured": {
+        "tableObjectId": "accessible-table",
+        "wheelchairSeatId": "seat-accessible-wheelchair",
+        "clearHeightM": 0.71,
+        "volumeCollisionFree": true,
+        "conflictingObjectIds": []
+      },
+      "required": {
+        "minimumClearHeightM": 0.7,
+        "volumeCollisionFree": true
+      },
+      "evidenceGeometry": [
+        {
+          "id": "accessible-table-knee-volume",
+          "type": "polygon",
+          "points": [
+            [
+              -0.93,
+              1.245
+            ],
+            [
+              -0.17,
+              1.245
+            ],
+            [
+              -0.17,
+              1.795
+            ],
+            [
+              -0.93,
+              1.795
+            ]
+          ],
+          "objectIds": [
+            "accessible-table"
+          ],
+          "label": "Knee-clearance footprint"
+        }
+      ],
+      "violationGeometry": []
+    },
+    {
+      "checkId": "seatCount",
+      "status": "pass",
+      "severity": "warning",
+      "message": "14 capacity positions are modeled, including one wheelchair position.",
+      "measured": {
+        "count": 14,
+        "accessibleSeatCount": 1
+      },
+      "required": {
+        "minimum": 14,
+        "maximum": 18,
+        "minimumAccessibleSeatCount": 1
+      },
+      "evidenceGeometry": [],
+      "violationGeometry": []
+    }
   ]
 }
