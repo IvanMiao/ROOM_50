@@ -10,7 +10,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "test": "node --test validator/test/*.test.mjs",
+    "reports:demo": "node validator/generate-demo-reports.mjs",
     "typecheck": "tsc --noEmit",
+    "validate": "node validator/cli.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

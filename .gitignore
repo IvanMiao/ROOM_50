@@ -4,5 +4,10 @@
 node_modules/
 dist/
 .netlify/
+/validation-report.json
+.playwright-cli/
+output/playwright/
+__pycache__/
+*.blend1
 .DS_Store
 Thumbs.db

@@ -134,10 +134,18 @@ Future checks may be appended without changing existing ids. Adding or renaming 
   "required": {
     "shellLengthM": 10,
     "shellWidthM": 5,
+    "shellClearHeightM": 3.2,
     "outsideObjectCount": 0,
     "unintendedIntersectionCount": 0
   },
-  "evidenceGeometry": [],
+  "evidenceGeometry": [
+    {
+      "id": "boundary-shell",
+      "type": "polygon",
+      "points": [[-5, -2.5], [5, -2.5], [5, 2.5], [-5, 2.5]],
+      "label": "10 m × 5 m shell boundary"
+    }
+  ],
   "violationGeometry": [
     {
       "id": "boundary-chair-07",
@@ -165,7 +173,9 @@ Object-object intersection must account for vertical intervals as well as orient
     "bottleneck": [0.85, 0.4],
     "routeConnected": true,
     "allStopsConnected": true,
-    "toleranceM": 0.05,
+    "sampleSpacingM": 0.05,
+    "minimumCornerClearanceM": 0.6,
+    "cornerClearances": [],
     "conflictingObjectIds": ["table-b3"],
     "stops": [
       {
@@ -212,6 +222,7 @@ Object-object intersection must account for vertical intervals as well as orient
   },
   "required": {
     "minimumClearWidthM": 1.2,
+    "minimumCornerClearanceM": 0.6,
     "maximumStopDistanceM": 0.6,
     "allStopsConnected": true,
     "requiredStages": ["entrance", "ordering", "pick-up", "accessible-seat", "accessible-wc"]
@@ -237,13 +248,19 @@ Object-object intersection must account for vertical intervals as well as orient
 }
 ```
 
-The validator resolves every stop target against the collection named in `scene-brief.json`. Runtime validation requires `doors` for `entrance` and `accessible-wc`, `objects` for `ordering` and `pick-up`, and `seats` for `accessible-seat`.
+The validator resolves every stop target against the collection named in `scene-brief.json`. Runtime validation requires `doors` for `entrance` and `accessible-wc`, `objects` for `ordering` and `pick-up`, and `seats` for `accessible-seat`. It also requires entrance to target the step-free entrance door, ordering to target `serviceCounter.loweredSegmentObjectId`, pick-up to target `serviceCounter.pickUpObjectId`, accessible-seat to target `accessibleTable.wheelchairSeatId`, and accessible-wc to target the WC door.
 
 A stop is connected when its centerline point is no more than `0.6 m` from the referenced target geometry. Distance is measured to the target footprint or door opening segment, and to the marker point for a seat. This threshold is half of the required 1.2 m route width, so the route can approach a solid service object without passing through it.
 
+A door opening segment is centred on `door.position`, follows the door's rotated local x axis, and has length `door.clearWidthM`. A stop inside a solid object has zero target distance but does not bypass route collision checks; `routeWidth` must still fail when the declared centreline enters an obstacle.
+
 If any target reference is missing or uses the wrong collection, treat the scene brief as invalid input and exit with code `2`. If the reference is valid but its stop is farther than `0.6 m`, set `allStopsConnected` to `false` and fail `routeWidth` as a geometry result.
 
-If no continuous route exists, set `routeConnected` to `false`, set `minimumClearWidthM` to `0`, and return the last reachable route portion as evidence. JSON `null`, `NaN`, and `Infinity` must not be used as numeric measurements.
+If no continuous route exists, set `routeConnected` to `false`, set `minimumClearWidthM` to `0`, and retain the complete declared `scene.route.points` centerline as evidence so agents can see both reachable and disconnected portions. JSON `null`, `NaN`, and `Infinity` must not be used as numeric measurements.
+
+The validator samples every declared-route segment at intervals no greater than `0.05 m`. Cross-section width is the sum of the nearest left and right ray distances to an obstacle or shell edge. Exact segment-to-OBB tests independently prevent thin obstacles between scan samples from being missed. Internal polyline vertices also require radial clearance of at least `0.6 m`, preventing a sharp turn from clipping an obstacle between the adjoining segment normals. `sampleSpacingM` describes scan resolution; it is not a pass/fail tolerance subtracted from the 1.2 m requirement. Failed corner clearances emit required-radius circles in `violationGeometry`.
+
+When the route remains connected but is too narrow, `route-bottleneck` is a cross-section segment. When the declared centerline directly penetrates an obstacle and no valid cross-section exists, `route-bottleneck` is a point at the detected penetration instead of an invalid zero-length segment.
 
 ### `turningZones`
 
@@ -257,9 +274,9 @@ If no continuous route exists, set `routeConnected` to `false`, set `minimumClea
     "clearCount": 3,
     "requiredCount": 3,
     "zones": [
-      { "id": "turn-entry", "at": "entrance", "diameterM": 1.5, "clear": true, "conflictingObjectIds": [] },
-      { "id": "turn-counter", "at": "service-counter", "diameterM": 1.5, "clear": true, "conflictingObjectIds": [] },
-      { "id": "turn-wc", "at": "accessible-wc", "diameterM": 1.5, "clear": true, "conflictingObjectIds": [] }
+      { "id": "turn-entry", "at": "entrance", "diameterM": 1.5, "insideShell": true, "clear": true, "conflictingObjectIds": [] },
+      { "id": "turn-counter", "at": "service-counter", "diameterM": 1.5, "insideShell": true, "clear": true, "conflictingObjectIds": [] },
+      { "id": "turn-wc", "at": "accessible-wc", "diameterM": 1.5, "insideShell": true, "clear": true, "conflictingObjectIds": [] }
     ]
   },
   "required": {
@@ -296,7 +313,15 @@ The actual circle-to-shell and circle-to-obstacle clearances determine the resul
   "required": {
     "maximumTopHeightM": 0.76
   },
-  "evidenceGeometry": [],
+  "evidenceGeometry": [
+    {
+      "id": "counter-height-evidence-lowered-counter",
+      "type": "polygon",
+      "points": [[1.2, -1.35], [2.3, -1.35], [2.3, -0.65], [1.2, -0.65]],
+      "objectIds": ["lowered-counter"],
+      "label": "Lowered counter top at 0.76 m"
+    }
+  ],
   "violationGeometry": []
 }
 ```
@@ -406,7 +431,7 @@ Malformed or semantically inconsistent `scene-brief.json` is a CLI/input error, 
 2. exit with code `2`;
 3. not write a normal `validation-report.json` that could be mistaken for completed validation.
 
-Semantic input checks include globally unique ids, valid cross-references, stage-appropriate route stop target collections, finite numbers, strictly increasing in-range route stop indexes, symmetric overlap exemptions, and consistent clearance references.
+Semantic input checks include globally unique ids, valid cross-references, stage-appropriate route stop target collections and functional identities, finite numbers, strictly increasing in-range route stop indexes, symmetric overlap exemptions, and consistent clearance references.
 
 ## CLI exit codes
 

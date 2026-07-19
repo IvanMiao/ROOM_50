@@ -1,0 +1,148 @@
+export function makeValidSceneBrief() {
+  const collision = () => ({ obstacle: true, allowOverlapWith: [] });
+
+  return {
+    schemaVersion: "1.0.0",
+    contractId: "room50-accessible-cafe-v1",
+    label: "Validator test café",
+    status: "concept-demo-not-for-construction",
+    units: "metres",
+    coordinateSystem: {
+      horizontalPlane: "xz",
+      verticalAxis: "y-up",
+      origin: "shell-centre-at-finished-floor",
+      rotationUnit: "radians",
+      rotationAxis: "y",
+      rotationRule: "right-hand-rule",
+    },
+    observations: [],
+    userIntent: ["Test the validator handoff"],
+    assumptions: ["Test fixture only"],
+    shell: {
+      shape: "rectangle",
+      lengthM: 10,
+      widthM: 5,
+      clearHeightM: 3.2,
+      grossAreaM2: 50,
+    },
+    objects: [
+      {
+        id: "main-counter",
+        semanticTag: "service-counter",
+        semanticGroup: "service",
+        position: [2, -1],
+        rotation: 0,
+        bbox: { w: 1.6, d: 0.7, h: 0.9 },
+        collision: collision(),
+      },
+      {
+        id: "lowered-counter",
+        semanticTag: "lowered-counter",
+        semanticGroup: "service",
+        position: [0.7, -1],
+        rotation: 0,
+        bbox: { w: 0.8, d: 0.7, h: 0.76 },
+        collision: collision(),
+      },
+      {
+        id: "pickup-counter",
+        semanticTag: "pickup-counter",
+        semanticGroup: "service",
+        position: [3.3, -1],
+        rotation: 0,
+        bbox: { w: 0.8, d: 0.7, h: 0.9 },
+        collision: collision(),
+      },
+      {
+        id: "accessible-table",
+        semanticTag: "accessible-table",
+        semanticGroup: "furniture",
+        position: [-0.5, 0.8],
+        rotation: 0,
+        bbox: { w: 0.9, d: 0.7, h: 0.74 },
+        collision: collision(),
+      },
+    ],
+    seats: [
+      {
+        id: "wheelchair-position-01",
+        kind: "wheelchair-position",
+        position: [-1, 0.8],
+        countsTowardCapacity: true,
+        accessible: true,
+      },
+    ],
+    accessibility: {
+      route: {
+        minimumClearWidthM: 1.2,
+        centerline: [[-3.3, 2.4], [0.3, -0.4], [2.8, -0.4], [-1, 0.8], [-3.5, -0.2]],
+        stops: [
+          { stage: "entrance", pointIndex: 0, target: { collection: "doors", id: "entrance-door" } },
+          { stage: "ordering", pointIndex: 1, target: { collection: "objects", id: "lowered-counter" } },
+          { stage: "pick-up", pointIndex: 2, target: { collection: "objects", id: "pickup-counter" } },
+          { stage: "accessible-seat", pointIndex: 3, target: { collection: "seats", id: "wheelchair-position-01" } },
+          { stage: "accessible-wc", pointIndex: 4, target: { collection: "doors", id: "wc-door" } },
+        ],
+      },
+      turningZones: [
+        { id: "turn-entry", at: "entrance", center: [-3.3, 1.5], diameterM: 1.5 },
+        { id: "turn-counter", at: "service-counter", center: [0.5, -0.2], diameterM: 1.5 },
+        { id: "turn-wc", at: "accessible-wc", center: [-3.8, -1.4], diameterM: 1.5 },
+      ],
+      doors: [
+        { id: "entrance-door", at: "entrance", position: [-3.3, 2.5], rotation: 0, clearWidthM: 0.9, stepFree: true },
+        { id: "wc-door", at: "accessible-wc", position: [-3.5, -0.2], rotation: 0, clearWidthM: 0.9, stepFree: true },
+      ],
+      serviceCounter: {
+        counterObjectId: "main-counter",
+        loweredSegmentObjectId: "lowered-counter",
+        pickUpObjectId: "pickup-counter",
+        maximumLoweredHeightM: 0.76,
+      },
+      accessibleTable: {
+        tableObjectId: "accessible-table",
+        wheelchairSeatId: "wheelchair-position-01",
+        minimumKneeClearHeightM: 0.7,
+        kneeClearanceVolume: {
+          position: [-1, 0.8],
+          rotation: 0,
+          bbox: { w: 0.7, d: 0.6, h: 0.7 },
+        },
+      },
+    },
+  };
+}
+
+export function makePassingSceneBrief(seatCount = 14) {
+  const candidate = makeValidSceneBrief();
+  candidate.accessibility.route.centerline = [[-3, 0], [-1.5, 0], [0, 0], [1.5, 0], [3, 0]];
+  candidate.accessibility.doors[0].position = [-3, 0];
+  candidate.accessibility.doors[1].position = [3, 0];
+  candidate.seats[0].position = [1.5, 0];
+
+  const positions = new Map([
+    ["main-counter", [4, -1.5]],
+    ["lowered-counter", [-1.5, 0.5]],
+    ["pickup-counter", [0, 0.5]],
+    ["accessible-table", [2, 1.5]],
+  ]);
+  for (const object of candidate.objects) {
+    object.position = positions.get(object.id);
+    object.collision.obstacle = false;
+  }
+  const lowered = candidate.objects.find((object) => object.id === "lowered-counter");
+  const pickup = candidate.objects.find((object) => object.id === "pickup-counter");
+  lowered.bbox = { w: 0.4, d: 0.2, h: 0.76 };
+  pickup.bbox = { w: 0.4, d: 0.2, h: 0.9 };
+
+  for (let index = 1; index < seatCount; index += 1) {
+    candidate.seats.push({
+      id: `chair-${String(index).padStart(2, "0")}`,
+      kind: "chair",
+      position: [3.5 + (index % 2) * 0.25, 1.5 + (index % 3) * 0.2],
+      countsTowardCapacity: true,
+      accessible: false,
+    });
+  }
+  return candidate;
+}
