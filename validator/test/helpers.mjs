@@ -96,6 +96,7 @@ export function makeValidSceneBrief() {
       serviceCounter: {
         counterObjectId: "main-counter",
         loweredSegmentObjectId: "lowered-counter",
+        pickUpObjectId: "pickup-counter",
         maximumLoweredHeightM: 0.76,
       },
       accessibleTable: {

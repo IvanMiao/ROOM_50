@@ -41,6 +41,9 @@ function resolveReference(rootSchema, reference) {
 }
 
 function matchesType(value, type) {
+  if (Array.isArray(type)) {
+    return type.some((candidateType) => matchesType(value, candidateType));
+  }
   if (type === "object") return isObject(value);
   if (type === "array") return Array.isArray(value);
   if (type === "string") return typeof value === "string";
@@ -83,7 +86,10 @@ function validateNode(value, schema, path, rootSchema, issues) {
   }
 
   if (schema.type && !matchesType(value, schema.type)) {
-    issues.push(inputIssue("SCHEMA_TYPE", path, `must be ${schema.type}.`));
+    const allowedTypes = Array.isArray(schema.type)
+      ? schema.type.join(" or ")
+      : schema.type;
+    issues.push(inputIssue("SCHEMA_TYPE", path, `must be ${allowedTypes}.`));
     return;
   }
 

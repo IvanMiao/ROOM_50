@@ -17,6 +17,24 @@ const CHECKS = Object.freeze([
   validateSeatCount,
 ]);
 
+export function summarizeChecks(checks) {
+  const passed = checks.filter((check) => check.status === "pass").length;
+  const failedWarnings = checks.filter(
+    (check) => check.status === "fail" && check.severity === "warning",
+  ).length;
+  const failedErrors = checks.filter(
+    (check) => check.status === "fail" && check.severity !== "warning",
+  ).length;
+
+  return Object.freeze({
+    overallStatus: failedErrors > 0 ? "fail" : "pass",
+    total: checks.length,
+    passed,
+    failedErrors,
+    failedWarnings,
+  });
+}
+
 function generatedAt(clock) {
   const value = clock();
   const date = value instanceof Date ? value : new Date(value);
@@ -27,13 +45,7 @@ function generatedAt(clock) {
 export function validateScene(scene, options = {}) {
   const clock = options.clock ?? (() => new Date());
   const checks = Object.freeze(CHECKS.map((check) => check(scene)));
-  const passed = checks.filter((check) => check.status === "pass").length;
-  const failedErrors = checks.filter(
-    (check) => check.status === "fail" && check.severity === "error",
-  ).length;
-  const failedWarnings = checks.filter(
-    (check) => check.status === "fail" && check.severity === "warning",
-  ).length;
+  const summary = summarizeChecks(checks);
 
   return Object.freeze({
     reportVersion: REPORT_VERSION,
@@ -50,13 +62,7 @@ export function validateScene(scene, options = {}) {
       origin: scene.coordinateSystem.origin,
       units: scene.coordinateSystem.units,
     }),
-    summary: Object.freeze({
-      overallStatus: failedErrors > 0 ? "fail" : "pass",
-      total: checks.length,
-      passed,
-      failedErrors,
-      failedWarnings,
-    }),
+    summary,
     checks,
   });
 }

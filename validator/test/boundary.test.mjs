@@ -24,6 +24,8 @@ test("boundary passes when all objects are inside and separated", async () => {
   assert.deepEqual(result.measured.intersections, []);
   assert.equal(result.violationGeometry.length, 0);
   assert.deepEqual(result.evidenceGeometry[0].points, [[-5, -2.5], [5, -2.5], [5, 2.5], [-5, 2.5]]);
+  assert.equal(Object.isFrozen(result.evidenceGeometry[0].points), true);
+  assert.equal(result.evidenceGeometry[0].points.every((point) => Object.isFrozen(point)), true);
 });
 
 test("boundary reports a rotated object whose corner leaves the shell", async () => {

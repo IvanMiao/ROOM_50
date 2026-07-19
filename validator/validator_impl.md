@@ -154,6 +154,7 @@ Runtime checks include:
   - accessible-wc → doors;
 - entrance targets a door with `at: entrance` and `stepFree: true`;
 - ordering targets `serviceCounter.loweredSegmentObjectId`;
+- pick-up targets `serviceCounter.pickUpObjectId`, the declared modeled pick-up point;
 - accessible-seat targets `accessibleTable.wheelchairSeatId`, whose seat is an accessible wheelchair position;
 - accessible-wc targets a door with `at: accessible-wc`;
 - all numeric values are finite; JSON values that become `NaN` or `Infinity` internally are rejected.
@@ -168,6 +169,7 @@ Create table-driven tests that mutate one valid minimal brief at a time:
 - remove `collision`;
 - reference a missing object;
 - use `seats` for the ordering target;
+- use an existing unrelated object for the pick-up target;
 - repeat or reverse a route stop index;
 - use a point index beyond `centerline.length - 1`;
 - put a string in a coordinate;

@@ -4,12 +4,12 @@ import { obbPolygon } from "../geometry/obb.mjs";
 import { hasOverlapExemption } from "../input/normalize.mjs";
 
 function shellPolygon(shell) {
-  return [
-    [shell.minX, shell.minZ],
-    [shell.maxX, shell.minZ],
-    [shell.maxX, shell.maxZ],
-    [shell.minX, shell.maxZ],
-  ];
+  return Object.freeze([
+    Object.freeze([shell.minX, shell.minZ]),
+    Object.freeze([shell.maxX, shell.minZ]),
+    Object.freeze([shell.maxX, shell.maxZ]),
+    Object.freeze([shell.minX, shell.maxZ]),
+  ]);
 }
 
 function objectInsideShell(object, shell) {

@@ -151,6 +151,21 @@ test("seat count ignores markers that do not count toward capacity", async () =>
   assert.equal(result.measured.count, 14);
 });
 
+test("seat count warns when capacity passes without an accessible wheelchair position", async () => {
+  const candidate = makeValidSceneBrief();
+  setCapacity(candidate, 14);
+  candidate.seats[0].accessible = false;
+  candidate.seats[0].kind = "chair";
+
+  const result = validateSeatCount(await normalizeSceneBrief(candidate));
+
+  assert.equal(result.status, "fail");
+  assert.equal(result.severity, "warning");
+  assert.equal(result.measured.count, 14);
+  assert.equal(result.measured.accessibleSeatCount, 0);
+  assert.equal(result.required.minimumAccessibleSeatCount, 1);
+});
+
 test("measurement checks produce deterministic conflict ordering", async () => {
   const candidate = makeValidSceneBrief();
   const volume = candidate.accessibility.accessibleTable.kneeClearanceVolume;

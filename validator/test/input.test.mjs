@@ -60,6 +60,42 @@ test("structure rejects additional properties", async () => {
   assert.ok(findIssue(issues, "SCHEMA_ADDITIONAL_PROPERTY", "/unapprovedField"));
 });
 
+test("structure accepts string and null reference identities", async () => {
+  const sampleCandidate = makeValidSceneBrief();
+  sampleCandidate.reference = {
+    kind: "sample",
+    name: "Central-entry plan",
+    sampleId: "central-entry",
+    sourceUrl: "/assets/plans/central-entry.svg",
+  };
+  const uploadCandidate = makeValidSceneBrief();
+  uploadCandidate.reference = {
+    kind: "upload",
+    name: "user-plan.png",
+    sampleId: null,
+    sourceUrl: null,
+  };
+
+  assert.deepEqual(await validateSceneBriefStructure(sampleCandidate), []);
+  assert.deepEqual(await validateSceneBriefStructure(uploadCandidate), []);
+});
+
+test("structure reports JSON Schema union types clearly", async () => {
+  const candidate = makeValidSceneBrief();
+  candidate.reference = {
+    kind: "upload",
+    name: "user-plan.png",
+    sampleId: 42,
+    sourceUrl: null,
+  };
+
+  const issues = await validateSceneBriefStructure(candidate);
+  const issue = findIssue(issues, "SCHEMA_TYPE", "/reference/sampleId");
+
+  assert.ok(issue);
+  assert.equal(issue.message, "must be string or null.");
+});
+
 test("semantics reject globally duplicated ids", () => {
   const candidate = makeValidSceneBrief();
   candidate.seats[0].id = candidate.objects[0].id;
@@ -119,6 +155,17 @@ test("semantics require ordering to target the lowered counter", () => {
 
   assert.ok(
     findIssue(issues, "ROUTE_ORDERING_TARGET_INVALID", "/accessibility/route/stops/1/target/id"),
+  );
+});
+
+test("semantics require pick-up to target the declared pick-up object", () => {
+  const candidate = makeValidSceneBrief();
+  candidate.accessibility.route.stops[2].target.id = "main-counter";
+
+  const issues = validateSceneBriefSemantics(candidate);
+
+  assert.ok(
+    findIssue(issues, "ROUTE_PICKUP_TARGET_INVALID", "/accessibility/route/stops/2/target/id"),
   );
 });
 

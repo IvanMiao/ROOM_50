@@ -248,7 +248,7 @@ Object-object intersection must account for vertical intervals as well as orient
 }
 ```
 
-The validator resolves every stop target against the collection named in `scene-brief.json`. Runtime validation requires `doors` for `entrance` and `accessible-wc`, `objects` for `ordering` and `pick-up`, and `seats` for `accessible-seat`. It also requires entrance to target the step-free entrance door, ordering to target `serviceCounter.loweredSegmentObjectId`, accessible-seat to target `accessibleTable.wheelchairSeatId`, and accessible-wc to target the WC door.
+The validator resolves every stop target against the collection named in `scene-brief.json`. Runtime validation requires `doors` for `entrance` and `accessible-wc`, `objects` for `ordering` and `pick-up`, and `seats` for `accessible-seat`. It also requires entrance to target the step-free entrance door, ordering to target `serviceCounter.loweredSegmentObjectId`, pick-up to target `serviceCounter.pickUpObjectId`, accessible-seat to target `accessibleTable.wheelchairSeatId`, and accessible-wc to target the WC door.
 
 A stop is connected when its centerline point is no more than `0.6 m` from the referenced target geometry. Distance is measured to the target footprint or door opening segment, and to the marker point for a seat. This threshold is half of the required 1.2 m route width, so the route can approach a solid service object without passing through it.
 
@@ -256,7 +256,7 @@ A door opening segment is centred on `door.position`, follows the door's rotated
 
 If any target reference is missing or uses the wrong collection, treat the scene brief as invalid input and exit with code `2`. If the reference is valid but its stop is farther than `0.6 m`, set `allStopsConnected` to `false` and fail `routeWidth` as a geometry result.
 
-If no continuous route exists, set `routeConnected` to `false`, set `minimumClearWidthM` to `0`, and return the last reachable route portion as evidence. JSON `null`, `NaN`, and `Infinity` must not be used as numeric measurements.
+If no continuous route exists, set `routeConnected` to `false`, set `minimumClearWidthM` to `0`, and retain the complete declared `scene.route.points` centerline as evidence so agents can see both reachable and disconnected portions. JSON `null`, `NaN`, and `Infinity` must not be used as numeric measurements.
 
 The validator samples every declared-route segment at intervals no greater than `0.05 m`. Cross-section width is the sum of the nearest left and right ray distances to an obstacle or shell edge. Exact segment-to-OBB tests independently prevent thin obstacles between scan samples from being missed. Internal polyline vertices also require radial clearance of at least `0.6 m`, preventing a sharp turn from clipping an obstacle between the adjoining segment normals. `sampleSpacingM` describes scan resolution; it is not a pass/fail tolerance subtracted from the 1.2 m requirement. Failed corner clearances emit required-radius circles in `violationGeometry`.
 

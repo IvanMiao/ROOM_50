@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { formatTerminalSummary } from "../cli.mjs";
-import { validateScene } from "../index.mjs";
+import { summarizeChecks, validateScene } from "../index.mjs";
 import { normalizeSceneBrief } from "../input/normalize.mjs";
 import { writeReportAtomic } from "../report/write-report.mjs";
 import { makePassingSceneBrief } from "./helpers.mjs";
@@ -125,6 +125,22 @@ test("warning-only, one-error, and multiple-error summaries follow severity", as
   });
   assert.deepEqual(multipleErrors.summary, {
     overallStatus: "fail", total: 6, passed: 4, failedErrors: 2, failedWarnings: 0,
+  });
+});
+
+test("a failed check without severity is counted as an error", () => {
+  const checks = [
+    { checkId: "pass", status: "pass", severity: "error" },
+    { checkId: "implicit-error", status: "fail" },
+    { checkId: "warning", status: "fail", severity: "warning" },
+  ];
+
+  assert.deepEqual(summarizeChecks(checks), {
+    overallStatus: "fail",
+    total: 3,
+    passed: 1,
+    failedErrors: 1,
+    failedWarnings: 1,
   });
 });
 

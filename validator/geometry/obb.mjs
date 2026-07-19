@@ -47,5 +47,5 @@ export function obbLocalToWorld(point, box) {
 }
 
 export function obbPolygon(box) {
-  return obbCorners(box).map((point) => [point[0], point[1]]);
+  return obbCorners(box);
 }

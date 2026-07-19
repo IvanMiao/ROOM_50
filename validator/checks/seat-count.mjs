@@ -5,7 +5,11 @@ export function validateSeatCount(scene) {
   ).length;
   const minimum = scene.thresholds.seatMinimum;
   const maximum = scene.thresholds.seatMaximum;
-  const passed = count >= minimum && count <= maximum;
+  const minimumAccessibleSeatCount = 1;
+  const passed =
+    count >= minimum &&
+    count <= maximum &&
+    accessibleSeatCount >= minimumAccessibleSeatCount;
 
   return Object.freeze({
     checkId: "seatCount",
@@ -13,7 +17,7 @@ export function validateSeatCount(scene) {
     severity: "warning",
     message: passed
       ? `${count} capacity seats are modeled, including ${accessibleSeatCount} accessible wheelchair position(s).`
-      : `${count} capacity seats are modeled; the target range is ${minimum}–${maximum}.`,
+      : `${count} capacity seats and ${accessibleSeatCount} accessible wheelchair positions are modeled; targets are ${minimum}–${maximum} seats and at least ${minimumAccessibleSeatCount} accessible position.`,
     measured: Object.freeze({
       count,
       accessibleSeatCount,
@@ -21,7 +25,7 @@ export function validateSeatCount(scene) {
     required: Object.freeze({
       minimum,
       maximum,
-      minimumAccessibleSeatCount: 1,
+      minimumAccessibleSeatCount,
     }),
     evidenceGeometry: Object.freeze([]),
     violationGeometry: Object.freeze([]),

@@ -64,6 +64,8 @@ test("OBB evidence polygon uses consistent counter-clockwise winding", () => {
   const secondEdge = subtract(polygon[2], polygon[1]);
 
   assert.ok(cross(firstEdge, secondEdge) > 0);
+  assert.equal(Object.isFrozen(polygon), true);
+  assert.equal(polygon.every((point) => Object.isFrozen(point)), true);
 });
 
 test("SAT distinguishes separation, touching, and positive penetration", () => {

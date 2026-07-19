@@ -100,6 +100,14 @@ export function validateSceneBriefSemantics(candidate) {
     "object",
     issues,
   );
+  requireReference(
+    objects,
+    serviceCounter.pickUpObjectId,
+    "/accessibility/serviceCounter/pickUpObjectId",
+    "PICKUP_OBJECT_NOT_FOUND",
+    "object",
+    issues,
+  );
 
   const accessibleTable = candidate.accessibility.accessibleTable;
   requireReference(
@@ -205,6 +213,16 @@ export function validateSceneBriefSemantics(candidate) {
           "ROUTE_ORDERING_TARGET_INVALID",
           `${stopPath}/target/id`,
           `ordering must target lowered counter “${serviceCounter.loweredSegmentObjectId}”.`,
+        ),
+      );
+    }
+
+    if (stop.stage === "pick-up" && stop.target.id !== serviceCounter.pickUpObjectId) {
+      issues.push(
+        inputIssue(
+          "ROUTE_PICKUP_TARGET_INVALID",
+          `${stopPath}/target/id`,
+          `pick-up must target declared pick-up object “${serviceCounter.pickUpObjectId}”.`,
         ),
       );
     }
