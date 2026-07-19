@@ -15,10 +15,12 @@ The demo reads a scene brief and validation report through the same public inter
 
 Useful URLs:
 
-- `/demo/#fail` — B3 constrains the route to 1.05 m.
-- `/demo/#pass` — B3 moves, one chair is removed, and the route clears at 1.24 m.
+- `/demo/#fail` — B3 constrains one declared-route corner to a measured 0.526 m radial clearance (about Ø1.05 m), below the required 0.60 m radius.
+- `/demo/#pass` — B3 moves, one chair is removed, and every route corner reaches the required 0.60 m radial clearance (Ø1.20 m); the minimum straight cross-section is 2.15 m.
 
 The evidence overlay is generated from `violationGeometry` or `evidenceGeometry` in the report. It is not inferred from scene styling.
+
+The checked-in reports are validator output, not hand-authored status files. After changing either demo brief, run `pnpm reports:demo`; `pnpm test` fails if the committed reports no longer match the current validator.
 
 The viewer also attempts to load the matching ArchViz GLB from `/assets/archviz/`. Until that presentation asset is ready—or whenever it fails to load—the semantic procedural scene remains visible automatically. Validator overlays use the same independent report path in both modes.
 

@@ -131,8 +131,8 @@ No external models, HDRIs, images, or downloaded textures are used.
 The route centreline, 1.20 m target width, and turning-zone geometry come from the
 canonical brief's `accessibility` object. The generator does not read a validation
 report and never labels the GLB pass or fail. At runtime, the independently loaded
-`validation-report.json` supplies the measured `1.05 m` / `1.24 m` results and is
-the only source for pass/fail status and overlays.
+`validation-report.json` supplies the measured cross-section and corner-clearance
+results and is the only source for pass/fail status and overlays.
 
 The procedural source and generated assets therefore do not introduce third-party
 asset-license or attribution obligations.
@@ -147,3 +147,8 @@ asset-license or attribution obligations.
 - Furniture and café props are concept-level visual models, not fabrication assets.
 - Material textures are 512 px by default to keep each web GLB near 12 MB. Increase
   `--texture-size` for offline poster work; doing so also increases the GLB size.
+- The checked-in Blender binaries predate the validator-integration reconciliation
+  of the route centreline and turning-zone locations. The web layer hides their
+  `04_ACCESSIBILITY` / `ACCESS_*` guides and draws current evidence from the report,
+  but rerun this generator before using the `.blend` guide collection or the
+  `*-top-evidence` renders as handoff evidence.

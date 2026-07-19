@@ -123,6 +123,7 @@
   "knownLimitations": [
     "Concept visualization only; not code certification or construction documentation.",
     "Procedural props are visually representative and are not fabrication-detail models.",
-    "Front and right walls are shown as a deliberate axonometric cutaway; boundary rails retain the exact 10 m x 5 m footprint."
+    "Front and right walls are shown as a deliberate axonometric cutaway; boundary rails retain the exact 10 m x 5 m footprint.",
+    "The checked-in Blender binaries predate validator-integration route reconciliation. The web viewer hides their ACCESS guides and uses current validation-report overlays; regenerate before treating the Blender accessibility collection or top-evidence renders as handoff evidence."
   ]
 }

@@ -7,14 +7,14 @@ const SCENARIOS = {
     report: "./fixtures/fail.validation-report.json",
     visual: { url: versionedArchvizUrl("../assets/archviz/room50-cafe-fail.glb"), variant: "fail", name: "archviz_fail" },
     poster: versionedArchvizUrl("../assets/archviz/room50-cafe-fail.webp"),
-    decision: "B3 桌旁座椅侵入动线，最窄处只剩 1.05 m。",
+    decision: "B3 桌旁座椅侵入转角包络，净空直径只有 1.05 m。",
   },
   pass: {
     brief: "./fixtures/pass.scene-brief.json",
     report: "./fixtures/pass.validation-report.json",
     visual: { url: versionedArchvizUrl("../assets/archviz/room50-cafe-pass.glb"), variant: "pass", name: "archviz_pass" },
     poster: versionedArchvizUrl("../assets/archviz/room50-cafe-pass.webp"),
-    decision: "B3 向东移动 0.55 m，并移除一把椅子：净宽回到 1.24 m。",
+    decision: "B3 向东移动 0.55 m，并移除一把椅子：转角净空直径达到 1.20 m。",
   },
 };
 
@@ -58,7 +58,10 @@ function formatCheckValues(check) {
     case "boundary":
       return [`${measured.outsideObjectIds.length} outside · ${measured.intersections.length} intersections`, "0 outside · 0 intersections"];
     case "routeWidth":
-      return [metres(measured.minimumClearWidthM), `≥ ${metres(required.minimumClearWidthM)}`];
+      return [
+        `corner Ø${metres(measured.minimumCornerClearanceM * 2)}`,
+        `≥ Ø${metres(required.minimumCornerClearanceM * 2)}`,
+      ];
     case "turningZones":
       return [`${measured.clearCount} / ${measured.requiredCount} clear`, `${required.locations.length} × Ø${metres(required.diameterM)}`];
     case "counterHeight":

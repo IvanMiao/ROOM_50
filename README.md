@@ -28,6 +28,14 @@ npm run validate -- validator/fixtures/pass.json
 
 The command exits `0` when every error-severity check passes, `1` for measured geometry failures, and `2` for invalid input.
 
+Regenerate the deterministic demo reports after editing their scene briefs:
+
+```sh
+pnpm reports:demo
+```
+
+`pnpm test` verifies that the checked-in demo reports are byte-for-byte outputs of the current validator.
+
 Append `/demo/` to the local URL printed by Vite for the deterministic fail/pass evidence viewer. For a production check, run `pnpm build`, then `pnpm preview`, and append `/demo/` to the preview URL. The viewer progressively loads a Blender-authored ArchViz GLB when available and falls back to the semantic procedural renderer if that asset is absent or unsupported.
 
 ## Deploy to Netlify

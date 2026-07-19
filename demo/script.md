@@ -41,7 +41,8 @@ Switch to `/demo/#fail`, click **Evidence**, and pause on the red route.
 Read the line that matters:
 
 ```text
-routeWidth  FAIL  measured 1.05 m  required >= 1.20 m
+routeWidth  FAIL  corner radius 0.526 m  required >= 0.600 m
+                  (about Ø1.05 m)           (Ø1.20 m)
 ```
 
 Say:
@@ -59,8 +60,8 @@ Explain the repair before clicking **After**:
 Click **After**. Let the green route and circles settle, then read:
 
 ```text
-routeWidth  PASS  measured 1.24 m  required >= 1.20 m
-seatCount   PASS  measured 14       required 14–18
+routeWidth  PASS  corner radius 0.600 m  required >= 0.600 m
+seatCount   PASS  measured 14           required 14–18
 ```
 
 This is the “soul shot”: keep the Before/After controls and the green evidence view visible together.
