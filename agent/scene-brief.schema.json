@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ROOM/50 scene brief",
   "description": "Canonical geometry handoff written by a ROOM/50 builder and read by the validator and renderer. All dimensions are in metres.",
-  "$comment": "Runtime consumers must also enforce globally unique ids, valid object/seat/door references, stage-appropriate route stop target collections, strictly increasing in-range route stop indexes, route stop proximity to referenced targets, symmetric overlap exemptions, and consistency between referenced objects and declared clearance geometry.",
+  "$comment": "Runtime consumers must also enforce globally unique ids, valid object/seat/door references, stage-appropriate route stop target collections and functional identities, strictly increasing in-range route stop indexes, route stop proximity to referenced targets, symmetric overlap exemptions, and consistency between referenced objects and declared clearance geometry. Entrance targets the step-free entrance door, ordering targets the lowered counter segment, accessible-seat targets the declared wheelchair position, and accessible-wc targets the WC door.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -352,7 +352,7 @@
       "properties": {
         "collection": {
           "enum": ["objects", "seats", "doors"],
-          "description": "Collection containing the real spatial target for this route stop. Runtime validation enforces doors for entrance and accessible-wc, objects for ordering and pick-up, and seats for accessible-seat."
+          "description": "Collection containing the real spatial target for this route stop. Runtime validation enforces doors for entrance and accessible-wc, objects for ordering and pick-up, and seats for accessible-seat. It also enforces the step-free entrance door, lowered ordering counter, declared wheelchair position, and WC door identities."
         },
         "id": {
           "$ref": "#/$defs/id"

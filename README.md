@@ -20,6 +20,14 @@ pnpm dev
 
 Open the local URL printed by Vite. Run `pnpm typecheck` for strict TypeScript checks and `pnpm build` to create the production `dist` directory.
 
+Validate a schema-compliant scene brief and write `validation-report.json` in the current directory:
+
+```sh
+npm run validate -- validator/fixtures/pass.json
+```
+
+The command exits `0` when every error-severity check passes, `1` for measured geometry failures, and `2` for invalid input.
+
 ## Deploy to Netlify
 
 Connect this repository in Netlify. `netlify.toml` runs the Vite build and publishes `dist`; `.nvmrc` pins a compatible Node version. For Netlify Drop, run `pnpm build` locally and upload the generated `dist` directory.
