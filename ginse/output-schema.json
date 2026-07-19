@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://room-50.netlify.app/ginse/output-schema.json",
+  "title": "ROOM/50 agent-ready café modeling brief",
+  "description": "A bounded, machine-readable handoff and executable agent prompt for one 50 m² accessible café concept.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brief_version",
+    "reference",
+    "user_intent",
+    "fixed_constraints",
+    "assumptions",
+    "build_engine",
+    "agent_prompt",
+    "completion_checks",
+    "concept_notice"
+  ],
+  "properties": {
+    "brief_version": { "const": "ginse-room50-1" },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "title",
+        "reference_url",
+        "catalog_url",
+        "design_challenge_context"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "enum": ["end-entry", "central-entry", "fixed-core"]
+        },
+        "title": { "type": "string", "minLength": 2 },
+        "reference_url": { "type": "string", "pattern": "^https://" },
+        "catalog_url": { "type": "string", "pattern": "^https://" },
+        "design_challenge_context": { "type": "string", "minLength": 10 }
+      }
+    },
+    "user_intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "experience_tags"],
+      "properties": {
+        "statement": { "type": "string", "minLength": 10, "maxLength": 600 },
+        "experience_tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 4
+        }
+      }
+    },
+    "fixed_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gross_area_m2",
+        "shell_length_m",
+        "shell_width_m",
+        "clear_height_m",
+        "minimum_route_width_m",
+        "turning_zone_diameter_m",
+        "door_clear_width_m",
+        "lowered_counter_max_height_m",
+        "accessible_table_knee_clear_height_m"
+      ],
+      "properties": {
+        "gross_area_m2": { "const": 50 },
+        "shell_length_m": { "const": 10 },
+        "shell_width_m": { "const": 5 },
+        "clear_height_m": { "const": 3.2 },
+        "minimum_route_width_m": { "const": 1.2 },
+        "turning_zone_diameter_m": { "const": 1.5 },
+        "door_clear_width_m": { "const": 0.9 },
+        "lowered_counter_max_height_m": { "const": 0.76 },
+        "accessible_table_knee_clear_height_m": { "const": 0.7 }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 10 }
+    },
+    "build_engine": {
+      "type": "string",
+      "enum": ["threejs", "blender-mcp"]
+    },
+    "agent_prompt": { "type": "string", "minLength": 500 },
+    "completion_checks": {
+      "type": "array",
+      "minItems": 8,
+      "items": { "type": "string", "minLength": 5 }
+    },
+    "concept_notice": { "const": "concept demo — not for construction" }
+  }
+}

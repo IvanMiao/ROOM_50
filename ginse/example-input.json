@@ -1,0 +1,10 @@
+{
+  "plan_id": "central-entry",
+  "intent": "Create a calm neighbourhood café with an obvious arrival sequence and flexible companion seating.",
+  "experience_tags": [
+    "quiet-reading",
+    "community-connection",
+    "lowered-ordering"
+  ],
+  "engine": "threejs"
+}

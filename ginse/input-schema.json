@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://room-50.netlify.app/ginse/input-schema.json",
+  "title": "ROOM/50 café modeling brief request",
+  "description": "Select one public ROOM/50 plan and describe the accessible neighbourhood café experience to brief.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plan_id", "intent", "experience_tags", "engine"],
+  "properties": {
+    "plan_id": {
+      "title": "Public café plan",
+      "type": "string",
+      "enum": ["end-entry", "central-entry", "fixed-core"]
+    },
+    "intent": {
+      "title": "Café experience intent",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 600
+    },
+    "experience_tags": {
+      "title": "Experience priorities",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "quiet-reading",
+          "community-connection",
+          "lowered-ordering",
+          "movable-furniture"
+        ]
+      },
+      "maxItems": 4
+    },
+    "engine": {
+      "title": "Modeling engine",
+      "type": "string",
+      "enum": ["threejs", "blender-mcp"]
+    }
+  },
+  "examples": [
+    {
+      "plan_id": "central-entry",
+      "intent": "Create a calm neighbourhood café with an obvious arrival sequence and flexible companion seating.",
+      "experience_tags": [
+        "quiet-reading",
+        "community-connection",
+        "lowered-ordering"
+      ],
+      "engine": "threejs"
+    }
+  ]
+}
