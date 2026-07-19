@@ -10,10 +10,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "test:ginse": "node --test tests/room50-ginse.test.mts",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.9",
+    "ajv": "^8.20.0",
+    "jose": "^6.2.3",
     "three": "0.170.0"
   },
   "devDependencies": {

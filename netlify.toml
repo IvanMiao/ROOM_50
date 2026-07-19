@@ -2,6 +2,9 @@
   publish = "dist"
   command = "pnpm run build"
 
+[functions]
+  node_bundler = "esbuild"
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -17,6 +20,12 @@
 
 [[headers]]
   for = "/llms.txt"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/.well-known/ginse.json"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Cache-Control = "public, max-age=0, must-revalidate"

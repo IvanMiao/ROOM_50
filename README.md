@@ -24,6 +24,17 @@ Open the local URL printed by Vite. Run `pnpm typecheck` for strict TypeScript c
 
 Connect this repository in Netlify. `netlify.toml` runs the Vite build and publishes `dist`; `.nvmrc` pins a compatible Node version. For Netlify Drop, run `pnpm build` locally and upload the generated `dist` directory.
 
+## Ginse fixed-price action
+
+ROOM/50 exposes one paid hackathon action at `POST /run`: turn a public ROOM/50 plan selection, a café experience intent, experience priorities, and a modeling engine into an agent-ready 50 m² accessible café brief.
+
+- Input schema: `/ginse/input-schema.json`
+- Output schema: `/ginse/output-schema.json`
+- Marketplace manifest: `/.well-known/ginse.json`
+- Contract test: `pnpm test:ginse`
+
+The endpoint accepts only a short-lived Ginse Ed25519 bearer token. It atomically binds every `Idempotency-Key` to a canonical request fingerprint in a strongly consistent, site-wide Netlify Blobs store. The stable operation ID and terminal output survive deploys and are replayed without repeating work; key reuse with a different input is rejected.
+
 ## Agent entry points
 
 - `/llms.txt` — short discovery map

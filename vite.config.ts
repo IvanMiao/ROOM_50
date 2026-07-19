@@ -10,7 +10,7 @@ const publicFiles = [
   "robots.txt",
 ] as const;
 
-const publicDirectories = [".well-known", "agent", "assets"] as const;
+const publicDirectories = [".well-known", "agent", "assets", "ginse"] as const;
 
 function copyAgentResources(): Plugin {
   let outputDirectory = resolve("dist");

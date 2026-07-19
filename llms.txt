@@ -10,6 +10,10 @@ Canonical URL map:
 - /assets/plans/catalog.json — built-in 10 m × 5 m reference-plan variants and their public URLs
 - /assets/sample-plan.svg — default end-entry reference retained as the fallback
 - /.well-known/agent.json — compact discovery manifest
+- /.well-known/ginse.json — generated Ginse one-action marketplace manifest
+- /ginse/input-schema.json — paid café-brief action input contract
+- /ginse/output-schema.json — paid café-brief action output contract
+- /run — Ginse-signed POST endpoint; rejects unsigned browser or agent calls
 
 Fixed task boundary:
 - Use: accessible neighbourhood café
@@ -36,3 +40,6 @@ Recommended exploration sequence:
 
 Safety and truthfulness:
 Dimensions are demo modeling targets, not proof of local-code compliance. Do not provide construction, structural, fire, plumbing, or MEP certification. Label results “concept demo — not for construction.”
+
+Ginse action boundary:
+The marketplace action accepts one built-in plan id, one café intent, experience priorities, and one modeling engine. It returns a deterministic agent-ready ROOM/50 brief. Ginse invokes /run with a short-lived Ed25519 bearer token and an Idempotency-Key; direct unsigned calls are intentionally rejected.
